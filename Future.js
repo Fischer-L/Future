@@ -6,16 +6,16 @@
 		<NUM> FLAG_FUTURE_IS_OK = The flag marking the future is settled with the OK status
 		<NUM> FLAG_FUTURE_IS_ERR = The flag marking the future is settled with the error status
 		[ Private ]
-		<CLS> _cls_Future_Queue_Ctrl = the controller to to control the jobs in the Fu obj's queue
-		<CLS> _cls_Future = The so-called Fu obj to defer and schedule the Fu jobs' execution after the prerequisite job ends, kind of like the jQuery's Deferred.
-		<CLS> _class_Future_Swear = The swear from one Fu obj. We can use it to make the Fu obj swear to do sth after the Fu arrives. The swear obj has no right to settle the Fu so we can give it to outsiders. Let outsiders access the Fu obj without the ability to settle/interfere the Fu, kind of like jQuery's promise obj.
-		<OBJ> _futures = the table to storing the Fu objs
+		<CLS> _cls_Future_Queue_Ctrl = the controller to to control the jobs in the future obj's queue
+		<CLS> _cls_Future = The so-called Future obj to defer and schedule the future jobs' execution after the prerequisite job ends, kind of like the jQuery's Deferred.
+		<CLS> _class_Future_Swear = The swear from one Future obj. We can use it to make the future obj swear to do sth after the future arrives. The swear obj has no right to settle the future so we can give it to outsiders. Let outsiders access the future obj without the ability to settle/interfere the future, kind of like jQuery's promise obj.
+		<OBJ> _futures = the table to storing the future objs
 	Methods:
 		[ Public ]
-		> exist : Check if the specified Fu obj is stored and made before.
-		> newOne : New one Fu obj. Fu will also store the generated Fu obj. Thus we would be able to call Fu.dump to track every Fu obj's status and prevent from generating two Fu obj for the same thing.
-		> rmOne : Remvoe one Fu obj from Fu's Fu pool, only functioning when the Fu status is settled.
-		> dump : Dump the array of names of Fu objs. With the method, we could find out Fu objs which are settled or not.
+		> exist : Check if the specified Future obj is stored and made before.
+		> newOne : New one Future obj. Future will also store the generated Future obj. Thus we would be able to call Future.dump to track every Future obj's status and prevent from generating two Future obj for the same thing.
+		> rmOne : Remvoe one Future obj from Future's Future pool (Better remove after the future is settled so as to be able to track down unsettled future).
+		> dump : Dump the array of names of Future objs. With the method, we could find out Future objs which are settled or not.
 */
 var Future = (function () {
 	/*	Properties:
@@ -291,7 +291,7 @@ var Future = (function () {
 						// Next we are going to act based on the type of successor...
 						if (_successorFuture === _predecessorFuture) {
 						// The successor future obj is the predecessor future.
-						// The future jobs inside the and-then future obj shall follow the successor future obj's jobs queue and the execiton depends on the successor's status.
+						// the future jobs inside the and-then future obj shall follow the successor future obj's jobs queue and the execiton depends on the successor's status.
 						// So let's settle the and-then future according the predecessor's status.
 							if (predecessorStatus === Future.FLAG_FUTURE_IS_OK) {
 								andThenFuture.settleOK(_varsForReturnedPredecessor);
@@ -413,7 +413,7 @@ var Future = (function () {
 		
 	/*	Properties:
 			[ Public ]
-			<OBJ> the property name is the Fu obj's name, the property value is the instance of Fu::_cls_Future
+			<OBJ> the property name is the future obj's name, the property value is the instance of Future::_cls_Future
 	*/
 	var _futures = {};
 		
@@ -456,10 +456,8 @@ var Future = (function () {
 			var future = null;
 			if (typeof name == "string") {
 				if (_futures[name] instanceof _cls_Future) {
-					if (!(_futures[name].report() === "ENV_NOT_YET")) {
-						future = _futures[name];
-						delete future[name];
-					}
+					future = _futures[name];
+					delete _futures[name];
 				}			
 			}
 			return future;

@@ -7,7 +7,76 @@
 
 <body>
 
+<ul class="test-results"></ul>
+
 <script type="text/javascript" src="./Future.js"></script>
+
+<script type="text/javascript">
+	
+	var futureCounts = 0,
+		
+		ul = document.querySelector("ul.test-results"),
+	
+		smokeTests = {
+			
+			tests : [],
+			
+			add : function (tag, test) {				
+				if (typeof test == "function") {
+					test._tag = tag;
+					this.tests.push(test);
+				}
+			},
+			
+			run : function () {
+				
+				var li = document.createElement("li");
+				li.className = "test-results-result";
+				
+				var result;
+				
+				for (var i = 0; i < this.tests.length; i++) {
+					
+					result = li.cloneNode(true);
+					result.innerHTML = "TEST : " + this.tests[i]._tag;
+					result._value = this.tests[i]();
+					
+					if (result._value !== true) {					
+						result.className += " error";
+						result.style.cssText = "color: red;";
+						if (typeof result._value === "string") {
+							result.innerHTML += "<br/>" + result._value;
+						}						
+					}
+					
+					ul.appendChild(result);
+				}
+			}
+		};	
+	
+	smokeTests.add("New future", function () {		
+		var n = "f" + futureCounts++,
+			f = Future.newOne(n);		
+		return f && typeof f.getName == "function" && f.getName() === n;
+	});
+	
+	smokeTests.add("Double new future", function () {			
+		var n = "f" + futureCounts++,
+			f0 = Future.newOne(n),
+			f1 = Future.newOne(n);		
+		return f0 === f1;
+	});
+	
+	smokeTests.add("Remove future", function () {
+		var n = "f" + futureCounts++,
+			f0 = Future.newOne(n),
+			f1 = Future.rmOne(n);
+		return !Future.exist(n) && f0 === f1;
+	});
+	
+	smokeTests.run();
+	
+</script>
 
 </body>
 </html>
