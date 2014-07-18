@@ -102,6 +102,7 @@ var Future = (function () {
 			<OBJ> __queueCtrl = the controller to control the jobs deferred, the instance of Future::_cls_Future_Queue_Ctrl
 		Methods:
 			[ Public ]
+			> getName : Get the name of future
 			> report : Report the future obj status
 			> next : Add one job and execute the job once the future status is settled with OK, kind of like jQuery's done
 			> fall : Add one job and execute the job once the future status is settled with error, kind of like jQuery's fail
@@ -125,6 +126,12 @@ var Future = (function () {
 		var __andThenCount = 0;
 		var __status = Future.FLAG_FUTURE_NOT_YET;
 		var __queueCtrl = new _cls_Future_Queue_Ctrl;
+		/*	Return:
+				<STR> the name of future
+		*/
+		this.getName = function () {
+			return __name;
+		}
 		/*	Return: Refer to Private::__status
 		*/
 		this.report = function () {
