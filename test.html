@@ -285,6 +285,80 @@
 		return false;
 	});
 	
+	smokeTests.add("Settle OK swear", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++),
+			s = f.swear();
+		
+		s.next(function(num) { count += num; })
+		 .next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; });
+		
+		f.settleOK([1]);
+		
+		if (count !== 3) {
+			return "The expected count = 3 but the actual count = " + count;
+		}
+		return true;
+	});	
+	
+	smokeTests.add("Settle error swear", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++),
+			s = f.swear();
+		
+		s.next(function(num) { count += num; })
+		 .next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; })
+		
+		f.settleERR(1);
+		
+		if (count !== -2) {
+			return "The expected count = -2 but the actual count = " + count;
+		}
+		return true;
+	});
+		
+	smokeTests.add("Report swear", function () {
+		var f0 = Future.newOne("f" + futureCounts++), s0 = f0.swear(),
+			f1 = Future.newOne("f" + futureCounts++), s1 = f1.swear(),
+			f2 = Future.newOne("f" + futureCounts++), s2 = f2.swear();
+		
+		f0.settleOK();
+		if (s0.report() != Future.FLAG_FUTURE_IS_OK) {
+			return false;	
+			f0.settleERR();
+			if (s0.report() != Future.FLAG_FUTURE_IS_OK) {
+				return false;
+			}
+		}
+		
+		f1.settleERR();
+		if (s1.report() != Future.FLAG_FUTURE_IS_ERR) {
+			return false;
+			f1.settleOK();
+			if (s1.report() != Future.FLAG_FUTURE_IS_ERR) {
+				return false;
+			}
+		}
+		
+		if (s2.report() != Future.FLAG_FUTURE_NOT_YET) {
+			return false;
+			f2.settleOK();
+			if (s2.report() != Future.FLAG_FUTURE_IS_OK) {
+				return false;
+			}
+		}
+		
+		return true;
+	});
+	
+	
+	
 	smokeTests.add("Future and then", function () {
 		
 		var s, f;
