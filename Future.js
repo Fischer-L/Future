@@ -109,8 +109,8 @@ var Future = (function () {
 			> andThen : Add jobs and execute the jobs once the future status is settled.
 						Calling this method gives us a chance to deviate the jobs chained after this method to another future/swear obj.
 						According to the returned value of the called callback, there could be four cases:
-						- Case 1: the and-then callback returns one future obj different from the original one so the successor would be this future obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
-						- Case 2: the and-then callback returns the original future obj so so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
+						- Case 1: the and-then callback returns one future or one swear obj different from the original one so the successor would be this future obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
+						- Case 2: the and-then callback returns the original future obj so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
 						- Case 3: the and-then callbacks returns anything but future obj so the successor would be the original one still and the returned value would be the arguments for jobs in the successor's queue.
 						- Case 4: No and-then callbacks could be called so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
 						This method is kind of like jQuery's then.
@@ -231,7 +231,7 @@ var Future = (function () {
 					var _callAndThenCallbacks = function (predecessorStatus, varsForAndThens) {
 						
 						// The successor future obj is going to be determined in the below based on the four cases:
-						// - Case 1: the and-then callback returns one future obj different from the original one so the successor would be this future obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
+						// - Case 1: the and-then callback returns one future or one swear obj different from the original one so the successor would be this future obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
 						// - Case 2: the and-then callback returns the original future obj so so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
 						// - Case 3: the and-then callbacks returns anything but future obj so the successor would be the original one still and the returned value would be the arguments for jobs in the successor's queue.
 						// - Case 4: No and-then callbacks could be called so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.

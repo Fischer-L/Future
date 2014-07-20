@@ -18,10 +18,20 @@
 		ul = document.querySelector("ul.test-results"),
 		
 		CONST = {			
-			FUTURE_CLASS_NAME : "_cls_Future"			
+			FUTURE_CLASS_NAME : "_cls_Future",
+			SWEAR_CLASS_NAME : "_cls_Future_Swear"
 		},
 		
-		util = {			
+		util = {
+			
+			isFuture : function (f) {
+				return f instanceof Object && typeof f.constructor == "function" && f.constructor.name === CONST.FUTURE_CLASS_NAME;
+			},
+			
+			isSwear : function (s) {
+				return s instanceof Object && typeof s.constructor == "function" && s.constructor.name === CONST.SWEAR_CLASS_NAME;
+			},
+			
 			cleanFuture : function () {		
 				for (var i = 0; i < futureCounts; i++) {
 					Future.rmOne("f" + i);
@@ -72,7 +82,7 @@
 	smokeTests.add("New future", function () {		
 		var n = "f" + futureCounts++,
 			f = Future.newOne(n);		
-		return f && f.constructor.name == CONST.FUTURE_CLASS_NAME;
+		return util.isFuture(f);
 	});
 	
 	smokeTests.add("Double new future", function () {			
@@ -115,19 +125,19 @@
 		var f = Future.newOne("f" + futureCounts++);
 		
 		f = f.next(function() {});
-		if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+		if (util.isFuture(f)) {
 		
 			f = f.next(function() {});
-			if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+			if (util.isFuture(f)) {
 			
 				f = f.fall(function() {});
-				if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+				if (util.isFuture(f)) {
 				
 					f = f.fall(function() {});
-					if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+					if (util.isFuture(f)) {
 					
 						f = f.next(function() {});
-						if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+						if (util.isFuture(f)) {
 						
 							return true;
 						}
@@ -241,6 +251,14 @@
 		if ([ f4.getName(), f5.getName() ].join(token) !== dumps.join(token)) return false;
 		
 		return true;
+	});
+	
+	smokeTests.add("Future and then", function () {
+		
+		var f = Future.newOne("f" + futureCounts++);
+		
+		
+		
 	});
 	
 	smokeTests.run();
