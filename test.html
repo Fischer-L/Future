@@ -258,7 +258,7 @@
 		var s, f;
 		
 		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen();	
+		s = f.andThen();
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
@@ -288,6 +288,43 @@
 		}
 		
 		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(null, function () {})
+			 .next(function (a, b) { s = a + b; });
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(function () {}, null);
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.fall(function (a, b) { s = a + b; });
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(function () {}, null)
+			 .fall(function (a, b) { s = a + b; });
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}		
+				
+		return true;
+	});
+	
+	smokeTests.add("Future and then new value", function () {
+		
+		var s ,f;		
+		
+		f = Future.newOne("f" + futureCounts++);
 		s = f.andThen(
 			function (a, b) {
 				return [ 2 * a, 2 * b ];
@@ -306,28 +343,12 @@
 		
 		f = Future.newOne("f" + futureCounts++);
 		s = f.andThen(
-			function (a, b) {
-				return [ 2 * a, 2 * b ];
-			},
-			function () { return [ -2 * a, -2 * b ]; }
-		);
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
-			f.next(function (a, b) {
-				s = a + b; 
-			});
-			f.settleOK([100, 100]);			
-			if (s !== 200) throw new Error;
-		}
-		
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
 				function (a, b) {
 					return [ 2 * a, 2 * b ];
 				},
 				null
-			).next(function (a, b) {
+			)
+			.next(function (a, b) {
 				s = a + b; 
 			});
 		if (!util.isSwear(s)) {
@@ -335,7 +356,7 @@
 		} else {
 			f.settleOK([100, 100]);			
 			if (s !== 400) throw new Error;
-		}
+		}		
 		
 		f = Future.newOne("f" + futureCounts++);
 		s = f.andThen(
@@ -353,36 +374,10 @@
 			if (s !== 400) throw new Error;
 		}		
 		
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(function () {}, null);
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
-			f.fall(function (a, b) { s = a + b; });
-			f.settleERR([100, 100]);			
-			if (s !== 200) throw new Error;
-		}
 		
 		f = Future.newOne("f" + futureCounts++);
 		s = f.andThen(
 			null,
-			function (a, b) {
-				return [ 2 * a, 2 * b ];
-			}
-		);
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
-			f.fall(function (a, b) {
-				s = a + b; 
-			});
-			f.settleERR([100, 100]);			
-			if (s !== 200) throw new Error;
-		}
-		
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(			
-			function () { return [ -2 * a, -2 * b ]; },
 			function (a, b) {
 				return [ 2 * a, 2 * b ];
 			}
@@ -413,6 +408,24 @@
 			if (s !== 400) throw new Error;
 		}
 		
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(			
+			function () { return [ -2 * a, -2 * b ]; },
+			function (a, b) {
+				return [ 2 * a, 2 * b ];
+			}
+		);
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.fall(function (a, b) {
+				s = a + b; 
+			});
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
 		f = Future.newOne("f" + futureCounts++);
 		s = f.andThen(
 				function () { return [ -2 * a, -2 * b ]; },
@@ -432,22 +445,26 @@
 		return true;
 	});
 	
-	smokeTests.add("Future and then new value", function () {
-		var sum = 0,
-			f = Future.newOne("f" + futureCounts++);
+	
+	smokeTests.add("Future and then original future", function () {
 		
-		f.next(function (a, b) { 
-				sum += a + b; 
-		 })
-		 .andThen(function (a, b) {
-				return [a - 2 * a, b - 2 * b];
-		 })
-		 .next(function (a, b) { 
-				sum += a + b; 
-		 });
+		var s, f;
 		
-		f.settleOK([100, 100]);
-		if (sum !== 0) return false;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return f; },
+				null
+			);		
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
 		
 		return true;
 	});
