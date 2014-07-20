@@ -255,10 +255,125 @@
 	
 	smokeTests.add("Future and then", function () {
 		
-		var f = Future.newOne("f" + futureCounts++);
+		var s, f;
 		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen();	
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.next(function (a, b) { s = a + b; });
+			f.settleOK([100, 100]);			
+			if (s !== 200) return false;
+		}
 		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen()
+			 .next(function (a, b) { s = a + b; });
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 200) return false;
+		}
 		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(null, function () {});
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.next(function (a, b) { s = a + b; });
+			f.settleOK([100, 100]);			
+			if (s !== 200) return false;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+			function (a, b) {
+				return [ 2 * a, 2 * b ];
+			},
+			null
+		);
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.next(function (a, b) {
+				s = a + b; 
+			});
+			f.settleOK([100, 100]);			
+			if (s !== 200) return false;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+			function (a, b) {
+				return [ 2 * a, 2 * b ];
+			},
+			function () { return [ -2 * a, -2 * b ]; }
+		);
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.next(function (a, b) {
+				s = a + b; 
+			});
+			f.settleOK([100, 100]);			
+			if (s !== 200) return false;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function (a, b) {
+					return [ 2 * a, 2 * b ];
+				},
+				null
+			).next(function (a, b) {
+				s = a + b; 
+			});
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 400) return false;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function (a, b) {
+					return [ 2 * a, 2 * b ];
+				},
+				function () { return [ -2 * a, -2 * b ]; }
+			).next(function (a, b) {
+				s = a + b; 
+			});
+		if (!util.isSwear(s)) {
+			return false;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 400) return false;
+		}
+		
+		return true;
+	});
+	
+	smokeTests.add("Future and then new value", function () {
+		var sum = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function (a, b) { 
+				sum += a + b; 
+		 })
+		 .andThen(function (a, b) {
+				return [a - 2 * a, b - 2 * b];
+		 })
+		 .next(function (a, b) { 
+				sum += a + b; 
+		 });
+		
+		f.settleOK([100, 100]);
+		if (sum !== 0) return false;
+		
+		return true;
 	});
 	
 	smokeTests.run();

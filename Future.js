@@ -231,9 +231,6 @@ var Future = (function () {
 					var _callAndThenCallbacks = function (predecessorStatus, varsForAndThens) {
 						
 						// The successor future obj is going to be determined in the below based on the four cases described above:
-
-						// Let's assume the Case 4 stands first.
-						_varsForReturnedPredecessor = varsForAndThens;
 						
 						// Call the and-then callbacks
 						if (   
@@ -247,13 +244,20 @@ var Future = (function () {
 							&& typeof _andThenCallbacks.forErr == "function"
 						) {						
 							_andThenCallbacks.result = _andThenCallbacks.forErr.apply(null, varsForAndThens);
+						
+						} else { // The Case 4:
+							_varsForReturnedPredecessor = varsForAndThens;
+							_successorFuture = _predecessorFuture;
+							return;
 						}
 						
 						// Determine the successor obj
 						if (   _andThenCallbacks.result instanceof _cls_Future
 							|| _andThenCallbacks.result instanceof _cls_Future_Swear
 						) {
+						
 							if (_andThenCallbacks.result !== _predecessorFuture) { // The Case 1:
+							
 								_varsForReturnedPredecessor = undefined;
 								_successorFuture = _andThenCallbacks.result;
 								// Here we put the andThen future obj into the successor's jobs queue
@@ -264,12 +268,18 @@ var Future = (function () {
 								_successorFuture.fall(function () {
 									andThenFuture.settleERR(Array.prototype.slice.call(arguments, 0));
 								});
+								return;
+								
 							} else { // The Case 2:
+								_varsForReturnedPredecessor = varsForAndThens;
 								_successorFuture = _predecessorFuture;
+								return;
 							}
+							
 						} else { // The Case 3:
 							_varsForReturnedPredecessor = _andThenCallbacks.result;
 							_successorFuture = _predecessorFuture;
+							return;
 						}
 					}
 				return {
