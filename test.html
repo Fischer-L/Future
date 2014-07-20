@@ -25,11 +25,29 @@
 		util = {
 			
 			isFuture : function (f) {
-				return f instanceof Object && typeof f.constructor == "function" && f.constructor.name === CONST.FUTURE_CLASS_NAME;
+				if (f instanceof Object && typeof f.constructor == "function") {
+					if (f.constructor.name === CONST.FUTURE_CLASS_NAME) {
+						return true;
+					} else {
+						// For IE <= 10
+						var patt = new RegExp("function " + CONST.FUTURE_CLASS_NAME, "m");
+						return patt.test(f.constructor.toString());
+					}
+				}
+				return false;
 			},
 			
 			isSwear : function (s) {
-				return s instanceof Object && typeof s.constructor == "function" && s.constructor.name === CONST.SWEAR_CLASS_NAME;
+				if (s instanceof Object && typeof s.constructor == "function") {
+					if (s.constructor.name === CONST.SWEAR_CLASS_NAME) {
+						return true;
+					} else {
+						// For IE <= 10
+						var patt = new RegExp("function " + CONST.SWEAR_CLASS_NAME, "m");
+						return patt.test(s.constructor.toString());
+					}
+				}
+				return false;
 			},
 			
 			cleanFuture : function () {		
