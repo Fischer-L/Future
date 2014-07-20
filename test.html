@@ -167,6 +167,39 @@
 		return true;
 	});
 	
+	smokeTests.add("Report future", function () {
+		var f0 = Future.newOne("f" + futureCounts++),
+			f1 = Future.newOne("f" + futureCounts++),
+			f2 = Future.newOne("f" + futureCounts++);
+		
+		f0.settleOK();
+		if (f0.report() != Future.FLAG_FUTURE_IS_OK) {
+			return false;	
+			f0.settleERR();
+			if (f0.report() != Future.FLAG_FUTURE_IS_OK) {
+				return false;
+			}
+		}
+		
+		f1.settleERR();
+		if (f1.report() != Future.FLAG_FUTURE_IS_ERR) {
+			return false;
+			f1.settleOK();
+			if (f1.report() != Future.FLAG_FUTURE_IS_ERR) {
+				return false;
+			}
+		}
+		
+		if (f2.report() != Future.FLAG_FUTURE_NOT_YET) {
+			return false;
+			f2.settleOK();
+			if (f2.report() != Future.FLAG_FUTURE_IS_OK) {
+				return false;
+			}
+		}
+		
+		return true;
+	});
 	
 	smokeTests.run();
 	
