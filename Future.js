@@ -145,9 +145,9 @@ var Future = (function () {
 			
 				__queueCtrl.flush("DEFERRED_QUEUE_FOR_ERR");
 				
-			} else if (!__status === Future.FLAG_FUTURE_NOT_YET
-					&& !__status === Future.FLAG_FUTURE_IS_OK
-					&& !__status === Future.FLAG_FUTURE_IS_ERR
+			} else if (__status !== Future.FLAG_FUTURE_NOT_YET
+					&& __status !== Future.FLAG_FUTURE_IS_OK
+					&& __status !== Future.FLAG_FUTURE_IS_ERR
 			) {
 			// Sth wrong! the status is crupt so correct it.
 				var msg = "The unknown status of future" + __status;
@@ -469,9 +469,9 @@ var Future = (function () {
 		*/
 		dump : function(status) {
 			var dumped = [];
-			if (   status == Future.FLAG_FUTURE_NOT_YET
-				|| status == Future.FLAG_FUTURE_IS_OK
-				|| status == Future.FLAG_FUTURE_IS_ERR
+			if (   status === Future.FLAG_FUTURE_NOT_YET
+				|| status === Future.FLAG_FUTURE_IS_OK
+				|| status === Future.FLAG_FUTURE_IS_ERR
 			) {
 				for (var name in _futures) {
 					if (_futures[name] instanceof _cls_Future) {
