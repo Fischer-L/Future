@@ -465,6 +465,140 @@
 			if (s !== 200) throw new Error;
 		}
 		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return f; },
+				null
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}	
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return f.swear(); },
+				null
+			);		
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return f.swear(); },
+				null
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}	
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return f; },
+				function () { return null; }
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleOK([100, 100]);			
+			if (s !== 200) throw new Error;
+		}		
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null,
+				function () { return f; }
+			);		
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null,
+				function () { return f; }
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}	
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null, 
+				function () { return f.swear(); }
+			);		
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null,
+				function () { return f.swear(); }
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}	
+		
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () { return null; },
+				function () { return f; }
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+			f.settleERR([100, 100]);			
+			if (s !== 200) throw new Error;
+		}
 		
 		return true;
 	});
