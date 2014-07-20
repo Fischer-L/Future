@@ -30,26 +30,29 @@
 			
 			run : function () {
 				
-				var li = document.createElement("li");
-				li.className = "test-results-result";
+				var base = document.createElement("li");
+				base.className = "test-results-result";
 				
-				var result;
+				var li;
 				
 				for (var i = 0; i < this.tests.length; i++) {
 					
-					result = li.cloneNode(true);
-					result.innerHTML = "TEST : " + this.tests[i]._tag;
-					result._value = this.tests[i]();
-					
-					if (result._value !== true) {					
-						result.className += " error";
-						result.style.cssText = "color: red;";
-						if (typeof result._value === "string") {
-							result.innerHTML += "<br/>" + result._value;
+					li = base.cloneNode(true);
+					li.innerHTML = "TEST :&nbsp;&nbsp;" + this.tests[i]._tag;
+					try {
+						li._errMsg = this.tests[i]();
+					} catch(e) {
+						li._errMsg = e.toString() + "<br/>&nbsp;&nbsp;&nbsp;&nbsp;" + e.stack;
+					}
+					if (li._errMsg !== true) {					
+						li.className += " error";
+						li.style.cssText = "color: red;";
+						if (typeof li._errMsg === "string") {
+							li.innerHTML += "<br/>" + li._errMsg;
 						}						
 					}
 					
-					ul.appendChild(result);
+					ul.appendChild(li);
 				}
 			}
 		};	
@@ -57,7 +60,7 @@
 	smokeTests.add("New future", function () {		
 		var n = "f" + futureCounts++,
 			f = Future.newOne(n);		
-		return f && typeof f.getName == "function" && f.getName() === n;
+		return f && f.constructor.name == "_cls_Future";
 	});
 	
 	smokeTests.add("Double new future", function () {			
@@ -67,12 +70,35 @@
 		return f0 === f1;
 	});
 	
+	smokeTests.add("Future Exist", function () {
+		var n = "f" + futureCounts++;
+			Future.newOne(n);
+		return Future.exist(n);
+	});
+	
 	smokeTests.add("Remove future", function () {
 		var n = "f" + futureCounts++,
 			f0 = Future.newOne(n),
 			f1 = Future.rmOne(n);
 		return !Future.exist(n) && f0 === f1;
 	});
+	
+	smokeTests.add("Get future name", function () {
+		var i, n = [], f = [];
+				
+		for (i = 0; i < 3; i++) {
+			n[i] = "f" + futureCounts++;
+			f[i] = Future.newOne(n[i]);
+		}
+		
+		for (i = 0; i < n.length; i++) {
+			if (f[i].getName() !== n[i]) {
+				return "The expected future name:" + n[i] + "but the actual future name" + f[i].getName();
+			}
+		}
+		return true;
+	});
+	
 	
 	smokeTests.run();
 	
