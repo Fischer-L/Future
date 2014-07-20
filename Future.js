@@ -8,7 +8,7 @@
 		[ Private ]
 		<CLS> _cls_Future_Queue_Ctrl = the controller to to control the jobs in the future obj's queue
 		<CLS> _cls_Future = The so-called Future obj to defer and schedule the future jobs' execution after the prerequisite job ends, kind of like the jQuery's Deferred.
-		<CLS> _class_Future_Swear = The swear from one Future obj. We can use it to make the future obj swear to do sth after the future arrives. The swear obj has no right to settle the future so we can give it to outsiders. Let outsiders access the future obj without the ability to settle/interfere the future, kind of like jQuery's promise obj.
+		<CLS> _cls_Future_Swear = The swear from one Future obj. We can use it to make the future obj swear to do sth after the future arrives. The swear obj has no right to settle the future so we can give it to outsiders. Let outsiders access the future obj without the ability to settle/interfere the future, kind of like jQuery's promise obj.
 		<OBJ> _futures = the table to storing the future objs
 	Methods:
 		[ Public ]
@@ -28,7 +28,7 @@ var Future = (function () {
 			> push : Add one job(callback) into the queue.
 			> flush : Call the queued callbacks in the order they are pushed. After flushing the queue would be empty.
 	*/
-	var _cls_Future_Queue_Ctrl = function () {
+	function _cls_Future_Queue_Ctrl() {
 		/*	Properties:
 				[ Public ]
 				<ARR> vars = the vars to passed to callbacks in this queue once they are invoked
@@ -99,7 +99,7 @@ var Future = (function () {
 							 @ The prerequsite job is done successfully: Future.FLAG_FUTURE_IS_OK
 							 @ The prerequsite job is done unsuccessfully: Future.FLAG_FUTURE_IS_ERR
 							 @ The prerequsite job is done not yet: Future.FLAG_FUTURE_NOT_YET
-			<OBJ> __queueCtrl = the controller to control the jobs deferred, the instance of Future::_cls_Future_Queue_Ctrl
+			<OBJ> __queueCtrl = the controller to control the jobs deferred into the future, the instance of Future::_cls_Future_Queue_Ctrl
 		Methods:
 			[ Public ]
 			> getName : Get the name of future
@@ -121,7 +121,7 @@ var Future = (function () {
 		Arg:
 			<STR> name = the name of the future obj
 	*/
-	var _cls_Future = function (name) {
+	function _cls_Future(name) {
 		var __name = name;
 		var __andThenCount = 0;
 		var __status = Future.FLAG_FUTURE_NOT_YET;
@@ -165,7 +165,7 @@ var Future = (function () {
 		/*	Arg:
 				<FN|ARR> callbacksForErr = the jobs to do on the OK future; If multiple, put in one array
 			Return:
-				<OBJ> This deferred
+				<OBJ> This future
 		*/
 		this.next = function (callbacksForOK) {
 			if (typeof callbacksForOK == "function" || callbacksForOK instanceof Array) {
@@ -177,7 +177,7 @@ var Future = (function () {
 		/*	Arg:
 				<FN|ARR> callbacksForErr = the jobs to do on the error future; If multiple, put in one array
 			Return:
-				<OBJ> This deferred
+				<OBJ> This future
 		*/
 		this.fall = function (callbacksForErr) {
 			if (typeof callbacksForErr == "function" || callbacksForErr instanceof Array) {
@@ -190,7 +190,7 @@ var Future = (function () {
 				<FN> callbackForOK = the job to do on the OK future
 				<FN> callbackForErr = the job to do on the error future
 			Return:
-				<OBJ> one instance of Future::_class_Future_Swear.
+				<OBJ> one instance of Future::_cls_Future_Swear.
 					  However the execution of jobs chained after this method does not depend on this returned swear obj but the returned value by the input callback
 		*/
 		this.andThen = function (callbackForOK, callbackForErr) {
@@ -225,12 +225,12 @@ var Future = (function () {
 						result : undefined
 					};
 					/*	Arg:
-							<STR> predecessorStatus = the predecessor deferred obj's status
+							<STR> predecessorStatus = the predecessor future obj's status
 							<ARR> varsForAndThens = the vars passed along the predecessor's queue and would be passed to the and-then callbacks
 					*/
 					var _callAndThenCallbacks = function (predecessorStatus, varsForAndThens) {
 						
-						// The successor deferred obj is going to be determined in the below based on the four cases:
+						// The successor future obj is going to be determined in the below based on the four cases:
 						// - Case 1: the and-then callback returns one future obj different from the original one so the successor would be this future obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
 						// - Case 2: the and-then callback returns the original future obj so so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
 						// - Case 3: the and-then callbacks returns anything but future obj so the successor would be the original one still and the returned value would be the arguments for jobs in the successor's queue.
@@ -255,7 +255,7 @@ var Future = (function () {
 						
 						// Determine the successor obj
 						if (   _andThenCallbacks.result instanceof _cls_Future
-							|| _andThenCallbacks.result instanceof _class_Future_Swear
+							|| _andThenCallbacks.result instanceof _cls_Future_Swear
 						) {
 							if (_andThenCallbacks.result !== _predecessorFuture) { // The Case 1:
 								_varsForReturnedPredecessor = undefined;
@@ -356,27 +356,27 @@ var Future = (function () {
 			return this.report();
 		}
 		/*	Return:
-				<OBJ> The instance of _class_Future_Swear assocciated with this deferred obj
+				<OBJ> The instance of _cls_Future_Swear assocciated with this future obj
 		*/
 		this.swear = function () {
-			return new _class_Future_Swear(this);
+			return new _cls_Future_Swear(this);
 		}
 	}
 	/*	Properties: 
-			<OBJ> _deferred = the future obj with which this swear obj associated
+			<OBJ> _future = the future obj with which this swear obj associated
 		Methods:
-			> report : Refer to Private::_deferred.report
-			> next : Refer to Private::_deferred.next
-			> fall : Refer to Private::_deferred.fall
-			> andThen : Refer to Private::_deferred.andThen
-			> swear : Return one swear obj associated with Private::_deferred
+			> report : Refer to Private::_future.report
+			> next : Refer to Private::_future.next
+			> fall : Refer to Private::_future.fall
+			> andThen : Refer to Private::_future.andThen
+			> swear : Return one swear obj associated with Private::_future
 	*/
-	var _class_Future_Swear = function (deferred) {
-		var _deferred = deferred;
+	function _cls_Future_Swear(future) {
+		var _future = future;
 		/*	Return: Refer to Future::_cls_Future::report
 		*/
 		this.report = function () {
-			return _deferred.report();
+			return _future.report();
 		}
 		/*	Arg:
 				> callbacksForOK = Refer to Future::_cls_Future::next
@@ -384,7 +384,7 @@ var Future = (function () {
 				> Refer to this.swear
 		*/
 		this.next = function (callbacksForOK) {
-			_deferred.next(callbacksForOK);
+			_future.next(callbacksForOK);
 			return this.swear();
 		}
 		/*	Arg:
@@ -393,7 +393,7 @@ var Future = (function () {
 				> Refer to this.swear
 		*/
 		this.fall = function (callbacksForErr) {
-			_deferred.fall(callbacksForErr);
+			_future.fall(callbacksForErr);
 			return this.swear();
 		}
 		/*	Arg:
@@ -402,7 +402,7 @@ var Future = (function () {
 				> Refer to this.swear
 		*/
 		this.andThen = function (callbackForOK, callbackForErr) {
-			return _deferred.andThen(callbackForOK, callbackForErr).swear();
+			return _future.andThen(callbackForOK, callbackForErr).swear();
 		}
 		/*	Return: <OBJ> the swear obj itself
 		*/
