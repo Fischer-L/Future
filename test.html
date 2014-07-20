@@ -16,6 +16,12 @@
 	var futureCounts = 0,
 		
 		ul = document.querySelector("ul.test-results"),
+		
+		CONST = {
+			
+			FUTURE_CLASS_NAME : "_cls_Future"
+			
+		},
 	
 		smokeTests = {
 			
@@ -60,7 +66,7 @@
 	smokeTests.add("New future", function () {		
 		var n = "f" + futureCounts++,
 			f = Future.newOne(n);		
-		return f && f.constructor.name == "_cls_Future";
+		return f && f.constructor.name == CONST.FUTURE_CLASS_NAME;
 	});
 	
 	smokeTests.add("Double new future", function () {			
@@ -95,6 +101,68 @@
 			if (f[i].getName() !== n[i]) {
 				return "The expected future name:" + n[i] + "but the actual future name" + f[i].getName();
 			}
+		}
+		return true;
+	});
+	
+	smokeTests.add("Chain futures", function () {		
+		var f = Future.newOne("f" + futureCounts++);
+		
+		f = f.next(function() {});
+		if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+		
+			f = f.next(function() {});
+			if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+			
+				f = f.fall(function() {});
+				if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+				
+					f = f.fall(function() {});
+					if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+					
+						f = f.next(function() {});
+						if (f.constructor.name == CONST.FUTURE_CLASS_NAME) {
+						
+							return true;
+						}
+					}
+				}
+			}
+		}
+		
+		return false;
+	});
+	
+	smokeTests.add("Settle OK future", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function(num) { count += num; })
+		 .next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; })
+		 .settleOK([1]);
+		
+		if (count !== 3) {
+			return "The expected count = 3 but the actual count = " + count;
+		}
+		return true;
+	});
+	
+	smokeTests.add("Settle error future", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function(num) { count += num; })
+		 .next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; })
+		 .settleERR([1]);
+		
+		if (count !== -2) {
+			return "The expected count = -2 but the actual count = " + count;
 		}
 		return true;
 	});
