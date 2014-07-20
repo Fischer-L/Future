@@ -444,8 +444,7 @@
 		
 		return true;
 	});
-	
-	
+		
 	smokeTests.add("Future and then original future", function () {
 		
 		var s, f;
@@ -602,6 +601,422 @@
 		
 		return true;
 	});
+	
+	smokeTests.add("Future and then new future", function () {
+		
+		var s, f, nf;
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				},
+				null
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				},
+				null
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				},
+				function () {
+					return f;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				},
+				function () {
+					return f;
+				}
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null, 
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null,
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				}
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					return f;
+				},
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					return f;
+				},
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					return nf;
+				}
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		return true;
+	});
+	
+	smokeTests.add("Future and then new swear", function () {
+		
+		var s, f, ns, nf;
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				},
+				null
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				},
+				null
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				},
+				function () {
+					return f;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.next(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				},
+				function () {
+					return f;
+				}
+			)
+			.next(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleOK([100, 100]);
+			nf.settleOK([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null, 
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				null,
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				}
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					return f;
+				},
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				}
+			);	
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {
+		
+			f.fall(function (a, b) {
+				s = a + b;
+			});
+			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== 200) throw new Error;
+		}
+		
+		ns = nf = null;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.andThen(
+				function () {
+					return f;
+				},
+				function () {
+					nf = Future.newOne("f" + futureCounts++);
+					ns = nf.swear(); return ns;
+				}
+			)
+			.fall(function (a, b) {
+				s = a + b;
+			});
+		if (!util.isSwear(s)) {
+			throw new Error;
+		} else {			
+			if (util.isFuture(nf)) throw new Error;
+			
+			f.settleERR([100, 100]);
+			nf.settleERR([-100, -100]);	
+			
+			if (s !== -200) throw new Error;
+		}
+		
+		return true;
+		
+	});
+	
 	
 	smokeTests.run();
 	
