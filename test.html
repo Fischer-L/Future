@@ -253,6 +253,38 @@
 		return true;
 	});
 	
+	smokeTests.add("Swear future", function () {
+		return util.isSwear(Future.newOne("f" + futureCounts++).swear());
+	});	
+	
+	smokeTests.add("Chain swears", function () {		
+		var s = Future.newOne("f" + futureCounts++).swear();
+		
+		s = s.next(function() {});
+		if (util.isSwear(s)) {
+		
+			s = s.next(function() {});
+			if (util.isSwear(s)) {
+			
+				s = s.fall(function() {});
+				if (util.isSwear(s)) {
+				
+					s = s.fall(function() {});
+					if (util.isSwear(s)) {
+					
+						s = s.next(function() {});
+						if (util.isSwear(s)) {
+						
+							return true;
+						}
+					}
+				}
+			}
+		}
+		
+		return false;
+	});
+	
 	smokeTests.add("Future and then", function () {
 		
 		var s, f;

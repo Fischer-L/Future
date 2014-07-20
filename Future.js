@@ -402,10 +402,8 @@ var Future = (function () {
 			_future.fall(callbacksForErr);
 			return this.swear();
 		}
-		/*	Arg:
+		/*	Arg: Return:
 				> [callbackForOK], [callbackForErr] = Refer to Future::_cls_Future::andThen
-			Return:
-				> Refer to this.swear
 		*/
 		this.andThen = function (callbackForOK, callbackForErr) {
 			return _future.andThen(callbackForOK, callbackForErr).swear();
