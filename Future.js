@@ -89,6 +89,7 @@ var Future = (function () {
 			[ Public ]
 			<NUM> FLAG_QUEUE_TYPE_OK = the flag marking the type of queue is for ok jobs
 			<NUM> FLAG_QUEUE_TYPE_ERR = the flag marking the type of queue is for error jobs
+			<NUM> FLAG_QUEUE_TYPE_ANYWAY = the flag marking the type of queue is for jobs disregarding ok or error anyway
 			<STR> FLAG_CALLBACK_TYPE_PROP_NAME = the name of property in queued callback which indicates the type of queued callback
 			[ Private ]
 			<ARR> __queue = the queue of jobs to call. The element inside are callbacks for jobs. Each callback would be added one property which bears the value of this::FLAG_QUEUE_TYPE_* to indicate the type of callback
@@ -109,7 +110,7 @@ var Future = (function () {
 			__queue.argsForERR = [];
 		}		
 		/*	Arg:
-				<STR> queueType = the queue type
+				<STR> queueType = the queue type. Do not pass in the type of this::FLAG_QUEUE_TYPE_ANYWAY.
 				<ARR> vars = the vars to passed to the queued callbacks once they are invoked
 			Return:
 				@ OK: true
@@ -136,7 +137,7 @@ var Future = (function () {
 		this.push = function (queueType, callbacks) {
 			var callback,
 				callbacksArray = (callbacks instanceof Array) ? callbacks : [callbacks],
-				type = (queueType == this.FLAG_QUEUE_TYPE_OK || queueType == this.FLAG_QUEUE_TYPE_ERR) ? queueType : null;
+				type = (queueType == this.FLAG_QUEUE_TYPE_OK || queueType == this.FLAG_QUEUE_TYPE_ERR || queueType == this.FLAG_QUEUE_TYPE_ANYWAY) ? queueType : null;
 			
 			if (type !== null) {
 			
@@ -152,7 +153,7 @@ var Future = (function () {
 			return __queue.length;
 		}
 		/*	Arg:
-				<STR> queueType = the type of queue to flush
+				<STR> queueType = the type of queue to flush. Do not pass in the type of this::FLAG_QUEUE_TYPE_ANYWAY.
 		*/
 		this.flush = function (queueType) {
 			var type = (queueType == this.FLAG_QUEUE_TYPE_OK || queueType == this.FLAG_QUEUE_TYPE_ERR) ? queueType : null;
@@ -171,8 +172,14 @@ var Future = (function () {
 				callback = __queue.shift();
 				
 				while (typeof callback == "function") {					
-					if (callback[this.FLAG_CALLBACK_TYPE_PROP_NAME] == type) {
-						callback.apply(null, argsForQueue);
+					if (   callback[this.FLAG_CALLBACK_TYPE_PROP_NAME] == type
+						|| callback[this.FLAG_CALLBACK_TYPE_PROP_NAME] == this.FLAG_QUEUE_TYPE_ANYWAY
+					) {
+						try {
+							callback.apply(null, argsForQueue);
+						} catch (err) {
+							_logErr("" + err);
+						}
 					}
 					callback = __queue.shift();
 				}
@@ -181,6 +188,7 @@ var Future = (function () {
 	}; {
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_TYPE_OK", 0, false);
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_TYPE_ERR", 1, false);
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_TYPE_ANYWAY", 2, false);
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_CALLBACK_TYPE_PROP_NAME", "_CALLBACK_TYPE", false);
 	}
 	/*	Properties:
@@ -200,6 +208,7 @@ var Future = (function () {
 			> report : Report the future obj status
 			> next : Add one job and execute the job once the future status is settled with OK, kind of like jQuery's done
 			> fall : Add one job and execute the job once the future status is settled with error, kind of like jQuery's fail
+			> anyway : Add one job and execute the job anyway no matter that the future is settled with OK or error, lind of like jQery's always
 			> andThen : Add jobs and execute the jobs once the future status is settled.
 						Calling this method gives us a chance to make the jobs after this method chained to another future/swear obj.
 						According to the returned value of the called callback, there could be four cases:
@@ -250,7 +259,7 @@ var Future = (function () {
 			return __status;
 		}
 		/*	Arg:
-				<FN|ARR> callbacksForErr = the jobs to do on the OK future; If multiple, put in one array
+				<FN|ARR> callbacksForErr = the jobs to do in the OK future; If multiple, put in one array
 			Return:
 				<OBJ> This future
 		*/
@@ -262,7 +271,7 @@ var Future = (function () {
 			return this;
 		}
 		/*	Arg:
-				<FN|ARR> callbacksForErr = the jobs to do on the error future; If multiple, put in one array
+				<FN|ARR> callbacksForErr = the jobs to do in the error future; If multiple, put in one array
 			Return:
 				<OBJ> This future
 		*/
@@ -274,8 +283,20 @@ var Future = (function () {
 			return this;
 		}
 		/*	Arg:
-				<FN> callbackForOK = the job to do on the OK future
-				<FN> callbackForErr = the job to do on the error future
+				<FN|ARR> callbacksForAnyway = the job to do in the future; If multiple, put in one array
+			Return:
+				<OBJ> This future
+		*/
+		this.anyway = function (callbacksForAnyway) {
+			if (typeof callbacksForAnyway == "function" || callbacksForAnyway instanceof Array) {
+				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_TYPE_ANYWAY, callbacksForAnyway);
+				__flushQueue();
+			}
+			return this;
+		}		
+		/*	Arg:
+				<FN> callbackForOK = the job to do in the OK future
+				<FN> callbackForErr = the job to do in the error future
 			Return:
 				<OBJ> one instance of Future::_cls_Future_Swear.
 					  However the execution of jobs chained after this method does not depend on this returned swear obj but the returned value by the input callback
@@ -460,11 +481,12 @@ var Future = (function () {
 	/*	Properties: 
 			<OBJ> _future = the future obj with which this swear obj associated
 		Methods:
-			> report : Refer to Private::_future.report
-			> next : Refer to Private::_future.next
-			> fall : Refer to Private::_future.fall
-			> andThen : Refer to Private::_future.andThen
-			> swear : Return one swear obj associated with Private::_future
+			> report : Refer to this::_future.report
+			> next : Refer to this::_future.next
+			> fall : Refer to this::_future.fall
+			> anyway : Refer to this::_future.anyway
+			> andThen : Refer to this::_future.andThen
+			> swear : Return one swear obj associated with this::_future
 	*/
 	function _cls_Future_Swear(future) {
 		var _future = future;
@@ -489,6 +511,15 @@ var Future = (function () {
 		*/
 		this.fall = function (callbacksForErr) {
 			_future.fall(callbacksForErr);
+			return this.swear();
+		}
+		/*	Arg:
+				> callbacksForAnyway = Refer to Future::_cls_Future::anyway
+			Return:
+				> Refer to this.swear
+		*/
+		this.anyway = function (callbacksForAnyway) {
+			_future.anyway(callbacksForAnyway);
 			return this.swear();
 		}
 		/*	Arg: Return:

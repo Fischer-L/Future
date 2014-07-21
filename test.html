@@ -167,7 +167,7 @@
 		return false;
 	});
 	
-	smokeTests.add("Settle OK future", function () {		
+	smokeTests.add("Approve future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
 		
@@ -195,7 +195,7 @@
 		return true;
 	});
 	
-	smokeTests.add("Settle error future", function () {		
+	smokeTests.add("Disapprove future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
 		
@@ -222,6 +222,46 @@
 		}
 		
 		return true;
+	});
+	
+	smokeTests.add("Approve future anyway", function () {
+		
+		var sum = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function (num) {
+			sum += num;
+		  })
+		 .anyway(function (num) {
+			sum += num;
+		  })
+		 .fall(function (num) {
+			sum -= num;
+		  });
+		  
+		f.approve(1);
+		
+		return sum == 2;
+	});
+	
+	smokeTests.add("Disapprove future anyway", function () {
+		
+		var sum = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function (num) {
+			sum += num;
+		  })
+		 .anyway(function (num) {
+			sum += num;
+		  })
+		 .fall(function (num) {
+			sum -= num;
+		  });
+		  
+		f.disapprove(1);
+		
+		return sum == 0;
 	});
 	
 	smokeTests.add("Report future", function () {
@@ -290,7 +330,7 @@
 		return false;
 	});
 	
-	smokeTests.add("Settle OK swear", function () {		
+	smokeTests.add("Approve swear", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++),
 			s = f.swear();
@@ -324,7 +364,7 @@
 		return true;
 	});	
 	
-	smokeTests.add("Settle error swear", function () {		
+	smokeTests.add("Disapprove swear", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++),
 			s = f.swear();
@@ -357,6 +397,48 @@
 		return true;
 	});
 		
+	smokeTests.add("Approve swear anyway", function () {
+		
+		var sum = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.swear()
+		 .next(function (num) {
+			sum += num;
+		  })
+		 .anyway(function (num) {
+			sum += num;
+		  })
+		 .fall(function (num) {
+			sum -= num;
+		  });
+		  
+		f.approve(1);
+		
+		return sum == 2;
+	});
+	
+	smokeTests.add("Disapprove swear anyway", function () {
+		
+		var sum = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.swear()
+		 .next(function (num) {
+			sum += num;
+		  })
+		 .anyway(function (num) {
+			sum += num;
+		  })
+		 .fall(function (num) {
+			sum -= num;
+		  });
+		  
+		f.disapprove(1);
+		
+		return sum == 0;
+	});
+	
 	smokeTests.add("Report swear", function () {
 		var f0 = Future.newOne("f" + futureCounts++), s0 = f0.swear(),
 			f1 = Future.newOne("f" + futureCounts++), s1 = f1.swear(),
