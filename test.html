@@ -176,7 +176,7 @@
 		 .fall(function(num) { count -= num; })
 		 .fall(function(num) { count -= num; })
 		 .next(function(num) { count += num; })
-		 .settleOK([1]);
+		 .approve([1]);
 		
 		if (count !== 3) {
 			return "The expected count = 3 but the actual count = " + count;
@@ -193,7 +193,7 @@
 		 .fall(function(num) { count -= num; })
 		 .fall(function(num) { count -= num; })
 		 .next(function(num) { count += num; })
-		 .settleERR(1);
+		 .disapprove(1);
 		
 		if (count !== -2) {
 			return "The expected count = -2 but the actual count = " + count;
@@ -206,19 +206,19 @@
 			f1 = Future.newOne("f" + futureCounts++),
 			f2 = Future.newOne("f" + futureCounts++);
 		
-		f0.settleOK();
+		f0.approve();
 		if (f0.report() != Future.FLAG_FUTURE_IS_OK) {
 			return false;	
-			f0.settleERR();
+			f0.disapprove();
 			if (f0.report() != Future.FLAG_FUTURE_IS_OK) {
 				return false;
 			}
 		}
 		
-		f1.settleERR();
+		f1.disapprove();
 		if (f1.report() != Future.FLAG_FUTURE_IS_ERR) {
 			return false;
-			f1.settleOK();
+			f1.approve();
 			if (f1.report() != Future.FLAG_FUTURE_IS_ERR) {
 				return false;
 			}
@@ -226,7 +226,7 @@
 		
 		if (f2.report() != Future.FLAG_FUTURE_NOT_YET) {
 			return false;
-			f2.settleOK();
+			f2.approve();
 			if (f2.report() != Future.FLAG_FUTURE_IS_OK) {
 				return false;
 			}
@@ -278,7 +278,7 @@
 		 .fall(function(num) { count -= num; })
 		 .next(function(num) { count += num; });
 		
-		f.settleOK([1]);
+		f.approve([1]);
 		
 		if (count !== 3) {
 			return "The expected count = 3 but the actual count = " + count;
@@ -297,7 +297,7 @@
 		 .fall(function(num) { count -= num; })
 		 .next(function(num) { count += num; })
 		
-		f.settleERR(1);
+		f.disapprove(1);
 		
 		if (count !== -2) {
 			return "The expected count = -2 but the actual count = " + count;
@@ -310,19 +310,19 @@
 			f1 = Future.newOne("f" + futureCounts++), s1 = f1.swear(),
 			f2 = Future.newOne("f" + futureCounts++), s2 = f2.swear();
 		
-		f0.settleOK();
+		f0.approve();
 		if (s0.report() != Future.FLAG_FUTURE_IS_OK) {
 			return false;	
-			f0.settleERR();
+			f0.disapprove();
 			if (s0.report() != Future.FLAG_FUTURE_IS_OK) {
 				return false;
 			}
 		}
 		
-		f1.settleERR();
+		f1.disapprove();
 		if (s1.report() != Future.FLAG_FUTURE_IS_ERR) {
 			return false;
-			f1.settleOK();
+			f1.approve();
 			if (s1.report() != Future.FLAG_FUTURE_IS_ERR) {
 				return false;
 			}
@@ -330,7 +330,7 @@
 		
 		if (s2.report() != Future.FLAG_FUTURE_NOT_YET) {
 			return false;
-			f2.settleOK();
+			f2.approve();
 			if (s2.report() != Future.FLAG_FUTURE_IS_OK) {
 				return false;
 			}
@@ -358,10 +358,10 @@
 			f4 = Future.newOne("f" + futureCounts++),
 			f5 = Future.newOne("f" + futureCounts++);
 		
-		f0.settleOK();
-		f1.settleOK();
-		f2.settleERR();
-		f3.settleERR();
+		f0.approve();
+		f1.approve();
+		f2.disapprove();
+		f3.disapprove();
 			
 		dumps = Future.dump();
 		if (dumps.length !== 0) throw new Error;
@@ -400,7 +400,7 @@
 			throw new Error;
 		} else {
 			f.next(function (a, b) { s = a + b; });
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -410,7 +410,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -420,7 +420,7 @@
 			throw new Error;
 		} else {
 			f.next(function (a, b) { s = a + b; });
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -430,7 +430,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -440,7 +440,7 @@
 			throw new Error;
 		} else {
 			f.fall(function (a, b) { s = a + b; });
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -450,7 +450,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}		
 				
@@ -474,7 +474,7 @@
 			f.next(function (a, b) {
 				s = a + b; 
 			});
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -491,7 +491,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 400) throw new Error;
 		}		
 		
@@ -507,7 +507,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 400) throw new Error;
 		}		
 		
@@ -525,7 +525,7 @@
 			f.fall(function (a, b) {
 				s = a + b; 
 			});
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -541,7 +541,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 400) throw new Error;
 		}
 		
@@ -559,7 +559,7 @@
 			f.fall(function (a, b) {
 				s = a + b; 
 			});
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -575,7 +575,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 400) throw new Error;
 		}
 		
@@ -597,7 +597,7 @@
 			f.next(function (a, b) {
 				s = a + b;
 			});
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -612,7 +612,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}	
 		
@@ -627,7 +627,7 @@
 			f.next(function (a, b) {
 				s = a + b;
 			});
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -642,7 +642,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}	
 		
@@ -657,7 +657,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleOK([100, 100]);			
+			f.approve([100, 100]);			
 			if (s !== 200) throw new Error;
 		}		
 		
@@ -672,7 +672,7 @@
 			f.fall(function (a, b) {
 				s = a + b;
 			});
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -687,7 +687,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}	
 		
@@ -702,7 +702,7 @@
 			f.fall(function (a, b) {
 				s = a + b;
 			});
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -717,7 +717,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}	
 		
@@ -732,7 +732,7 @@
 		if (!util.isSwear(s)) {
 			throw new Error;
 		} else {
-			f.settleERR([100, 100]);			
+			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
 		
@@ -762,8 +762,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -785,8 +785,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -812,8 +812,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -837,8 +837,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -862,8 +862,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -885,8 +885,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -912,8 +912,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -937,8 +937,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -969,8 +969,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -992,8 +992,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -1019,8 +1019,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -1044,8 +1044,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleOK([100, 100]);
-			nf.settleOK([-100, -100]);	
+			f.approve([100, 100]);
+			nf.approve([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -1069,8 +1069,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -1092,8 +1092,8 @@
 		} else {			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
@@ -1119,8 +1119,8 @@
 			
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== 200) throw new Error;
 		}
@@ -1144,8 +1144,8 @@
 		} else {
 			if (util.isFuture(nf)) throw new Error;
 			
-			f.settleERR([100, 100]);
-			nf.settleERR([-100, -100]);	
+			f.disapprove([100, 100]);
+			nf.disapprove([-100, -100]);	
 			
 			if (s !== -200) throw new Error;
 		}
