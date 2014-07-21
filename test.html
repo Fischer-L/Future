@@ -167,6 +167,34 @@
 		return false;
 	});
 	
+	smokeTests.add("Inform future", function () {
+	
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.during(function () {
+			for (var i = 0; i <arguments.length; i++) {
+				count += arguments[i];
+			}
+		  })
+		 .inform(1);
+		
+		if (count != 1) return "The expected count = 1 but the actual count = " + count;		
+		
+		count = 0;
+		
+		f.during(function () {
+			for (var i = 0; i <arguments.length; i++) {
+				count += arguments[i];
+			}
+		  })
+		 .inform([1, 1]);
+		
+		if (count != 4) return "The expected count = 4 but the actual count = " + count;
+		
+		return true;
+	});
+	
 	smokeTests.add("Approve future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
@@ -518,14 +546,14 @@
 		var exp,
 			act,
 			dumps,
-			token = "    ",
+			token = " ",
 			f0 = Future.newOne("f" + futureCounts++),
 			f1 = Future.newOne("f" + futureCounts++),
 			f2 = Future.newOne("f" + futureCounts++),
 			f3 = Future.newOne("f" + futureCounts++),
 			f4 = Future.newOne("f" + futureCounts++),
 			f5 = Future.newOne("f" + futureCounts++);
-		
+				
 		f0.approve();
 		f1.approve();
 		f2.disapprove();
@@ -540,20 +568,26 @@
 		dumps = Future.dump(Future.FLAG_FUTURE_IS_OK);
 		exp =  dumps.join(token);
 		act = [ f0.getName(), f1.getName() ].join(token);
-		if (exp !== act)
-			throw new Error("Expected = " + exp + " but Actual = " + act);
+		if (exp !== act) {
+			act = [ f1.getName(), f0.getName() ].join(token);
+			if (exp !== act) throw new Error("Expected OK = " + exp + " but Actual OK = " + act);
+		}
 		
 		dumps = Future.dump(Future.FLAG_FUTURE_IS_ERR);
 		exp =  dumps.join(token);
 		act = [ f2.getName(), f3.getName() ].join(token);
-		if (exp !== act)
-			throw new Error("Expected = " + exp + " but Actual = " + act);
+		if (exp !== act) {
+			act = [ f3.getName(), f2.getName() ].join(token);
+			if (exp !== act) throw new Error("Expected Error = " + exp + " but Actual Error = " + act);
+		}
 		
 		dumps = Future.dump(Future.FLAG_FUTURE_NOT_YET);
 		exp =  dumps.join(token);
 		act = [ f4.getName(), f5.getName() ].join(token);
-		if (exp !== act)
-			throw new Error("Expected = " + exp + " but Actual = " + act);
+		if (exp !== act) {
+			act = [ f5.getName(), f4.getName() ].join(token);
+			if (exp !== act) throw new Error("Expected Unsettled = " + exp + " but Actual Unsettled = " + act);
+		}
 		
 		return true;
 	});
