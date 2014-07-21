@@ -21,7 +21,74 @@
 		> dump : Dump the array of names of Future objs. With the method, we could find out Future objs which are settled or not.
 */
 var Future = (function () {
+	/*	Arg:
+			<STR> The error message
+	*/
+	function _logErr(msg) {
+		
+		if (typeof Error == "function") {
+			try {
+				throw new Error;
+			} catch (e) {
+				
+				var stack = "";
+				if (typeof e.stack == "string") {
+					stack = e.stack.replace("Error", "");
+				}
+				
+				msg += " error " + stack;
+			}
+		}
+		
+		if (console.error) {
+			console.error(msg);
+		} else {
+			console.log(msg);
+		}
+	}
+	/*	Arg:
+			<OBJ> obj = the object on which the constant property is defined
+			<STR> propName = the constant property name
+			<*> propValue = the constant property value
+			<BOO> [enumerable] = true to make the constant property enumerable on the object
+		Return:
+			@ OK: <*> The defined value
+			@ NG: undefined
+	*/
+	function _define(obj, propName, propValue, enumerable) {
+		
+		var defined;
+		
+		if (obj instanceof Object && propName && typeof propName == "string") {			
+			
+			if (obj[propName] === undefined) {
+		
+				try {
+					Object.defineProperty(
+						obj,
+						propName,
+						{
+							value : propValue,
+							writable : false,
+							configurable : false,
+							enumerable : (enumerable === true)
+						}
+					);
+				} catch (e) {
+					obj[propName] = propValue;
+				}
+			}
+			
+			defined = obj[propName];
+		}
+		
+		return defined;
+	}
+	
 	/*	Properties:
+			[ Public ]
+			<NUM> FLAG_QUEUE_FOR_OK = the flag marking the type of queue is for ok jobs
+			<NUM> FLAG_QUEUE_FOR_ERR = the flag marking the type of queue is for error jobs
 			[ Private ]
 			<ARR> __queueForOK = the queue of jobs to call on OK. Its type is DEFERRED_QUEUE_FOR_OK.
 			<ARR> __queueForErr = the queue of jobs to call on error. Its type is DEFERRED_QUEUE_FOR_ERR.
@@ -50,7 +117,7 @@ var Future = (function () {
 				@ NG: false
 		*/
 		this.setVarsForQueue = function (queueType, vars) {
-			var queue = (queueType == "DEFERRED_QUEUE_FOR_OK") ? __queueForOK : (queueType == "DEFERRED_QUEUE_FOR_ERR") ? __queueForErr : null;
+			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null;
 			if (queue) {
 				if (queue.vars.length <= 0 && vars instanceof Array) {
 					queue.vars = vars.slice(0);
@@ -66,7 +133,7 @@ var Future = (function () {
 				<NUM> the numbers of jobs queued
 		*/
 		this.push = function (queueType, callbacks) {
-			var queue = (queueType == "DEFERRED_QUEUE_FOR_OK") ? __queueForOK : (queueType == "DEFERRED_QUEUE_FOR_ERR") ? __queueForErr : null,
+			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null,
 				callbacksArray = (callbacks instanceof Array) ? callbacks : [callbacks],
 				callback;
 			
@@ -84,7 +151,7 @@ var Future = (function () {
 				<STR> queueType = the type of queue to flush
 		*/
 		this.flush = function (queueType) {
-			var queue = (queueType == "DEFERRED_QUEUE_FOR_OK") ? __queueForOK : (queueType == "DEFERRED_QUEUE_FOR_ERR") ? __queueForErr : null;
+			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null;
 			if (queue) {
 				var callback = queue.shift();
 				while (typeof callback == "function") {
@@ -93,6 +160,9 @@ var Future = (function () {
 				}
 			}
 		}
+	}; {
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_OK", 0, false);
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_ERR", 1, false);
 	}
 	/*	Properties:
 			[ Private ]
@@ -135,9 +205,9 @@ var Future = (function () {
 		*/
 		function __flushQueue() {
 			if (Future.FLAG_FUTURE_IS_OK === __status) {			
-				__queueCtrl.flush("DEFERRED_QUEUE_FOR_OK");				
+				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_FOR_OK);				
 			} else if (Future.FLAG_FUTURE_IS_ERR === __status) {			
-				__queueCtrl.flush("DEFERRED_QUEUE_FOR_ERR");
+				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_FOR_ERR);
 			}
 		}
 		/*	Return:
@@ -167,7 +237,7 @@ var Future = (function () {
 		*/
 		this.next = function (callbacksForOK) {
 			if (typeof callbacksForOK == "function" || callbacksForOK instanceof Array) {
-				__queueCtrl.push("DEFERRED_QUEUE_FOR_OK", callbacksForOK);
+				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_FOR_OK, callbacksForOK);
 				__flushQueue();
 			}
 			return this;
@@ -179,7 +249,7 @@ var Future = (function () {
 		*/
 		this.fall = function (callbacksForErr) {
 			if (typeof callbacksForErr == "function" || callbacksForErr instanceof Array) {
-				__queueCtrl.push("DEFERRED_QUEUE_FOR_ERR", callbacksForErr);
+				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_FOR_ERR, callbacksForErr);
 				__flushQueue();
 			}
 			return this;
@@ -342,7 +412,7 @@ var Future = (function () {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_OK;
-				__queueCtrl.setVarsForQueue("DEFERRED_QUEUE_FOR_OK", args);
+				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_FOR_OK, args);
 				__flushQueue();
 			}
 			return this.report();
@@ -356,7 +426,7 @@ var Future = (function () {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_ERR;
-				__queueCtrl.setVarsForQueue("DEFERRED_QUEUE_FOR_ERR", args);
+				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_FOR_ERR, args);
 				__flushQueue();
 			}
 			return this.report();
@@ -419,70 +489,6 @@ var Future = (function () {
 			<OBJ> the property name is the future obj's name, the property value is the instance of Future::_cls_Future
 	*/
 	var _futures = {};
-	
-	/*	Arg:
-			<STR> The error message
-	*/
-	function _logErr(msg) {
-		
-		if (typeof Error == "function") {
-			try {
-				throw new Error;
-			} catch (e) {
-				
-				var stack = "";
-				if (typeof e.stack == "string") {
-					stack = e.stack.replace("Error", "");
-				}
-				
-				msg += " error " + stack;
-			}
-		}
-		
-		if (console.error) {
-			console.error(msg);
-		} else {
-			console.log(msg);
-		}
-	}
-	/*	Arg:
-			<OBJ> obj = the object on which the constant property is defined
-			<STR> propName = the constant property name
-			<*> propValue = the constant property value
-			<BOO> [enumerable] = true to make the constant property enumerable on the object
-		Return:
-			@ OK: <*> The defined value
-			@ NG: undefined
-	*/
-	function _define(obj, propName, propValue, enumerable) {
-		
-		var defined;
-		
-		if (obj instanceof Object && propName && typeof propName == "string") {			
-			
-			if (obj[propName] === undefined) {
-		
-				try {
-					Object.defineProperty(
-						obj,
-						propName,
-						{
-							value : propValue,
-							writable : false,
-							configurable : false,
-							enumerable : (enumerable === true)
-						}
-					);
-				} catch (e) {
-					obj[propName] = propValue;
-				}
-			}
-			
-			defined = obj[propName];
-		}
-		
-		return defined;
-	}
 	
 	var publicProps =  {
 			/*	Arg:
