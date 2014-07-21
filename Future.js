@@ -13,6 +13,7 @@
 	Methods:
 		[ Private ]
 		> _logErr : Log error
+		> _define : Defined constant property on object
 		[ Public ]
 		> exist : Check if the specified Future obj is stored and made before.
 		> newOne : New one Future obj. Future will also store the generated Future obj. Thus we would be able to call Future.dump to track every Future obj's status and prevent from generating two Future obj for the same thing.
@@ -444,72 +445,113 @@ var Future = (function () {
 			console.log(msg);
 		}
 	}
-	
-	return {
-		FLAG_FUTURE_NOT_YET : 0,
-		FLAG_FUTURE_IS_OK : 1,
-		FLAG_FUTURE_IS_ERR : 2,
-		/*	Arg:
-				<STR> name = the name of future obj
-			Return:
-				@ OK: true
-				@ NG: false
-		*/
-		exist : function (name) {
-			return _futures[name] instanceof _cls_Future;
-		},
-		/*	Arg:
-				<STR> name = the name of future obj
-			Return:
-				@ OK: <OBJ> the instance of Future::_cls_Future
-				@ NG: null
-		*/
-		newOne : function (name) {
-			var future = null;
-			if (typeof name == "string") {
-				if (!this.exist(name)) {
-					_futures[name] = new _cls_Future(name);
+	/*	Arg:
+			<OBJ> obj = the object on which the constant property is defined
+			<STR> propName = the constant property name
+			<*> propValue = the constant property value
+			<BOO> [enumerable] = true to make the constant property enumerable on the object
+		Return:
+			@ OK: <*> The defined value
+			@ NG: undefined
+	*/
+	function _define(obj, propName, propValue, enumerable) {
+		
+		var defined;
+		
+		if (obj instanceof Object && propName && typeof propName == "string") {			
+			
+			if (obj[propName] === undefined) {
+		
+				try {
+					Object.defineProperty(
+						obj,
+						propName,
+						{
+							value : propValue,
+							writable : false,
+							configurable : false,
+							enumerable : (enumerable === true)
+						}
+					);
+				} catch (e) {
+					obj[propName] = propValue;
 				}
-				future = _futures[name];
 			}
-			return future;
-		},
-		/*	Arg:
-				<STR> name = the name of future obj
-			Return:
-				@ OK: <OBJ> the deleted instance of Future::_cls_Future
-				@ NG: null
-		*/
-		rmOne : function (name) {
-			var future = null;
-			if (typeof name == "string") {
-				if (_futures[name] instanceof _cls_Future) {
+			
+			defined = obj[propName];
+		}
+		
+		return defined;
+	}
+	
+	var publicProps =  {
+			/*	Arg:
+					<STR> name = the name of future obj
+				Return:
+					@ OK: true
+					@ NG: false
+			*/
+			exist : function (name) {
+				return _futures[name] instanceof _cls_Future;
+			},
+			/*	Arg:
+					<STR> name = the name of future obj
+				Return:
+					@ OK: <OBJ> the instance of Future::_cls_Future
+					@ NG: null
+			*/
+			newOne : function (name) {
+				var future = null;
+				if (typeof name == "string") {
+					if (!this.exist(name)) {
+						_futures[name] = new _cls_Future(name);
+					}
 					future = _futures[name];
-					delete _futures[name];
-				}			
-			}
-			return future;
-		},
-		/*	Arg:
-				<STR> status = the status of deferred objs to dump, refer to Future::_cls_Future::__status
-			Return:
-				<ARR> array of names of future objs with the given status
-		*/
-		dump : function(status) {
-			var dumped = [];
-			if (   status === Future.FLAG_FUTURE_NOT_YET
-				|| status === Future.FLAG_FUTURE_IS_OK
-				|| status === Future.FLAG_FUTURE_IS_ERR
-			) {
-				for (var name in _futures) {
+				}
+				return future;
+			},
+			/*	Arg:
+					<STR> name = the name of future obj
+				Return:
+					@ OK: <OBJ> the deleted instance of Future::_cls_Future
+					@ NG: null
+			*/
+			rmOne : function (name) {
+				var future = null;
+				if (typeof name == "string") {
 					if (_futures[name] instanceof _cls_Future) {
-						if (_futures[name].report() == status) {
-							dumped.push(name);
+						future = _futures[name];
+						delete _futures[name];
+					}			
+				}
+				return future;
+			},
+			/*	Arg:
+					<STR> status = the status of deferred objs to dump, refer to Future::_cls_Future::__status
+				Return:
+					<ARR> array of names of future objs with the given status
+			*/
+			dump : function(status) {
+				var dumped = [];
+				if (   status === Future.FLAG_FUTURE_NOT_YET
+					|| status === Future.FLAG_FUTURE_IS_OK
+					|| status === Future.FLAG_FUTURE_IS_ERR
+				) {
+					for (var name in _futures) {
+						if (_futures[name] instanceof _cls_Future) {
+							if (_futures[name].report() == status) {
+								dumped.push(name);
+							}
 						}
 					}
 				}
-			}
-			return dumped;
-		}		
-	}
+				return dumped;
+			}		
+		};	
+	
+	_define(publicProps, "FLAG_FUTURE_NOT_YET", 0, true);
+	_define(publicProps, "FLAG_FUTURE_IS_OK", 1, true);
+	_define(publicProps, "FLAG_FUTURE_IS_ERR", 2, true);
+	
+	return publicProps;
 }());
