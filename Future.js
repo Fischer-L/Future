@@ -89,9 +89,9 @@ var Future = (function () {
 			[ Public ]
 			<NUM> FLAG_QUEUE_FOR_OK = the flag marking the type of queue is for ok jobs
 			<NUM> FLAG_QUEUE_FOR_ERR = the flag marking the type of queue is for error jobs
+			<STR> FLAG_CALLBACK_TYPE_PROP_NAME = the name of property in queued callback which indicates the type of queued callback
 			[ Private ]
-			<ARR> __queueForOK = the queue of jobs to call on OK. Its type is DEFERRED_QUEUE_FOR_OK.
-			<ARR> __queueForErr = the queue of jobs to call on error. Its type is DEFERRED_QUEUE_FOR_ERR.
+			<ARR> __queue = the queue of jobs to call. The element inside are callbacks for jobs. Each callback would be added one property which bears the value of this::FLAG_QUEUE_FOR_OK/ERR to indicate the type of callback
 		Methods:
 			[ Public ]
 			> setVarsForQueue : Set the vars to passed to the queued callbacks once they are invoked. Only can set one.
@@ -101,14 +101,13 @@ var Future = (function () {
 	function _cls_Future_Queue_Ctrl() {
 		/*	Properties:
 				[ Public ]
-				<ARR> vars = the vars to passed to callbacks in this queue once they are invoked
+				<ARR> argsForOK = the array of arguments for the jobs queued for ok
+				<ARR> argsForERR = the array of arguments for the jobs queued for error
 		*/
-		var __queueForOK = []; __queueForOK.vars = [];
-		/*	Properties:
-				[ Public ]
-				<ARR> vars = the vars to passed to callbacks in this queue once they are invoked
-		*/
-		var __queueForErr = []; __queueForErr.vars = [];
+		var __queue = []; {
+			__queue.argsForOK = [];
+			__queue.argsForERR = [];
+		}		
 		/*	Arg:
 				<STR> queueType = the queue type
 				<ARR> vars = the vars to passed to the queued callbacks once they are invoked
@@ -117,52 +116,72 @@ var Future = (function () {
 				@ NG: false
 		*/
 		this.setVarsForQueue = function (queueType, vars) {
-			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null;
-			if (queue) {
-				if (queue.vars.length <= 0 && vars instanceof Array) {
-					queue.vars = vars.slice(0);
+			if (vars instanceof Array) {			
+				if (queueType == this.FLAG_QUEUE_FOR_OK && __queue.argsForOK.length <= 0) {	
+					__queue.argsForOK = vars.slice(0);
+					return true;
+				} else if (queueType == this.FLAG_QUEUE_FOR_ERR && __queue.argsForERR.length <= 0) {	
+					__queue.argsForERR = vars.slice(0);
 					return true;
 				}
-			}
+			}			
 			return false;
 		}
 		/*	Arg:
 				<STR> queueType = the queue type
 				<FN|ARR> callbacks = the function to push, if multiple put in one array
 			Return:
-				<NUM> the numbers of jobs queued
+				<NUM> the numbers of jobs queued (including both for ok and for error)
 		*/
 		this.push = function (queueType, callbacks) {
-			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null,
+			var callback,
 				callbacksArray = (callbacks instanceof Array) ? callbacks : [callbacks],
-				callback;
+				type = (queueType == this.FLAG_QUEUE_FOR_OK || queueType == this.FLAG_QUEUE_FOR_ERR) ? queueType : null;
 			
-			if (queue) {
+			if (type !== null) {
+			
 				callback = callbacksArray.shift();
-				while (typeof callback == "function") {
-					queue.push(callback);
-					callback = callbacksArray.shift();
+				
+				while (typeof callback == "function") {					
+					_define(callback, this.FLAG_CALLBACK_TYPE_PROP_NAME, type, false);
+					__queue.push(callback);
+					callback = callbacksArray.shift();					
 				}
 			}
 			
-			return queue.length;
+			return __queue.length;
 		}
 		/*	Arg:
 				<STR> queueType = the type of queue to flush
 		*/
 		this.flush = function (queueType) {
-			var queue = (queueType == this.FLAG_QUEUE_FOR_OK) ? __queueForOK : (queueType == this.FLAG_QUEUE_FOR_ERR) ? __queueForErr : null;
-			if (queue) {
-				var callback = queue.shift();
-				while (typeof callback == "function") {
-					callback.apply(null, queue.vars);
-					callback = queue.shift();
+			var type = (queueType == this.FLAG_QUEUE_FOR_OK || queueType == this.FLAG_QUEUE_FOR_ERR) ? queueType : null;
+			
+			if (type !== null) {
+			
+				var callback,
+					argsForQueue;
+				
+				if (type == this.FLAG_QUEUE_FOR_OK) {
+					argsForQueue = __queue.argsForOK;
+				} else if (type == this.FLAG_QUEUE_FOR_ERR) {
+					argsForQueue = __queue.argsForERR;
+				}
+				
+				callback = __queue.shift();
+				
+				while (typeof callback == "function") {					
+					if (callback[this.FLAG_CALLBACK_TYPE_PROP_NAME] == type) {
+						callback.apply(null, argsForQueue);
+					}
+					callback = __queue.shift();
 				}
 			}
 		}
 	}; {
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_OK", 0, false);
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_ERR", 1, false);
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_CALLBACK_TYPE_PROP_NAME", "_CALLBACK_TYPE", false);
 	}
 	/*	Properties:
 			[ Private ]
