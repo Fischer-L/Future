@@ -350,14 +350,14 @@ var Future = (function () {
 			}
 			return this;
 		}
-		/*	Arg:
-				<FN> callbackForOK = the job to do in the OK future
-				<FN> callbackForErr = the job to do in the error future
+		/*	Arg: 
+				<FN> okCallback = the job to do in the OK future
+				<FN> errCallback = the job to do in the error future
 			Return:
 				<OBJ> one instance of Future::_cls_Future_Swear.
 					  However the execution of jobs chained after this method does not depend on this returned swear obj but the returned value by the input callback
 		*/
-		this.andThen = function (callbackForOK, callbackForErr) {
+		this.andThen = function (okCallback, errCallback) {
 			/*	Func:
 					Mediate the jobs chained after calling this andThen methods to go to which future obj's jobs queue
 				Properties:
@@ -372,7 +372,7 @@ var Future = (function () {
 					> leavePredecessor : Leave the execution of jobs in the predecessor's queue first
 					> returnToPredecessor : Return to the predecessor's jobs queue
 			*/
-			var futureHandleMediator = (function (predecessorFuture, callbackForOK, callbackForErr) {
+			var futureHandleMediator = (function (predecessorFuture, okCallback, errCallback) {
 					var _predecessorFuture = predecessorFuture;
 					var _successorFuture = null;
 					var _varsForReturnedPredecessor;
@@ -384,8 +384,8 @@ var Future = (function () {
 							<FN> forOK, forErr = the callbacks passed into the predecessor's andThen method							
 					*/
 					var _andThenCallbacks = {
-						forOK : callbackForOK,
-						forErr : callbackForErr,
+						forOK : okCallback,
+						forErr : errCallback,
 						result : undefined
 					};
 					/*	Arg:
@@ -475,7 +475,7 @@ var Future = (function () {
 						}
 					}
 				}
-			}(this, callbackForOK, callbackForErr));
+			}(this, okCallback, errCallback));
 			
 			// New one future obj for the and-then jobs. This future obj is kind of like an mediator future.
 			var andThenFuture = Future.newOne(__name + "::andThen_" + __andThenCount++);
