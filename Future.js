@@ -114,8 +114,8 @@ var Future = (function () {
 						- Case 3: the and-then callbacks returns anything but future obj so the successor would be the original one still and the returned value would be the arguments for jobs in the successor's queue.
 						- Case 4: No and-then callbacks could be called so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
 						This method is kind of like jQuery's then.
-			> settleOK : Settle the future with the OK status
-			> settleERR : Settle the future with the Error status
+			> approve : Approve the future. This is to settle the future with the OK status
+			> disapprove : Disapprove the future. This is to settle the future with the Error status
 			> swear : Get the swear obj assocciated with this future obj
 	------------------------------------------------------------------------------------------------
 		Arg:
@@ -263,10 +263,10 @@ var Future = (function () {
 								// Here we put the andThen future obj into the successor's jobs queue
 								// so the jobs in the andThen jobs queue can follow the successor's queue
 								_successorFuture.next(function () {
-									andThenFuture.settleOK(Array.prototype.slice.call(arguments, 0));
+									andThenFuture.approve(Array.prototype.slice.call(arguments, 0));
 								});
 								_successorFuture.fall(function () {
-									andThenFuture.settleERR(Array.prototype.slice.call(arguments, 0));
+									andThenFuture.disapprove(Array.prototype.slice.call(arguments, 0));
 								});
 								return;
 								
@@ -300,9 +300,9 @@ var Future = (function () {
 						// the future jobs inside the and-then future obj shall follow the successor future obj's jobs queue and the execiton depends on the successor's status.
 						// So let's settle the and-then future according the predecessor's status.
 							if (predecessorStatus === Future.FLAG_FUTURE_IS_OK) {
-								andThenFuture.settleOK(_varsForReturnedPredecessor);
+								andThenFuture.approve(_varsForReturnedPredecessor);
 							} else if (predecessorStatus === Future.FLAG_FUTURE_IS_ERR) {
-								andThenFuture.settleERR(_varsForReturnedPredecessor);
+								andThenFuture.disapprove(_varsForReturnedPredecessor);
 							}
 						} else {
 						// The successor is not the predecessor but another future obj,
@@ -340,7 +340,7 @@ var Future = (function () {
 			Return:
 				Refer to this.report
 		*/
-		this.settleOK = function (settledArgs) {
+		this.approve = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_OK;
@@ -353,7 +353,7 @@ var Future = (function () {
 			Return:
 				Refer to this.report
 		*/
-		this.settleERR = function (settledArgs) {
+		this.disapprove = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_ERR;
