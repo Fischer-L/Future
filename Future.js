@@ -506,7 +506,7 @@ var Future = (function () {
 		*/
 		this.inform = function (msgArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : [msgArgs];
+				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (msgArgs !== undefined) ? [msgArgs] : [];
 				__duringCtrl.loop(args);
 			}
 		}
@@ -517,7 +517,7 @@ var Future = (function () {
 		*/
 		this.approve = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
+				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (settledArgs !== undefined) ? [settledArgs] : [];
 				__status = Future.FLAG_FUTURE_IS_OK;
 				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_OK, args);
 				__flushQueue();
@@ -531,7 +531,7 @@ var Future = (function () {
 		*/
 		this.disapprove = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
+				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (settledArgs !== undefined) ? [settledArgs] : [];
 				__status = Future.FLAG_FUTURE_IS_ERR;
 				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, args);
 				__flushQueue();
