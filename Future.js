@@ -87,11 +87,11 @@ var Future = (function () {
 	
 	/*	Properties:
 			[ Public ]
-			<NUM> FLAG_QUEUE_FOR_OK = the flag marking the type of queue is for ok jobs
-			<NUM> FLAG_QUEUE_FOR_ERR = the flag marking the type of queue is for error jobs
+			<NUM> FLAG_QUEUE_TYPE_OK = the flag marking the type of queue is for ok jobs
+			<NUM> FLAG_QUEUE_TYPE_ERR = the flag marking the type of queue is for error jobs
 			<STR> FLAG_CALLBACK_TYPE_PROP_NAME = the name of property in queued callback which indicates the type of queued callback
 			[ Private ]
-			<ARR> __queue = the queue of jobs to call. The element inside are callbacks for jobs. Each callback would be added one property which bears the value of this::FLAG_QUEUE_FOR_OK/ERR to indicate the type of callback
+			<ARR> __queue = the queue of jobs to call. The element inside are callbacks for jobs. Each callback would be added one property which bears the value of this::FLAG_QUEUE_TYPE_* to indicate the type of callback
 		Methods:
 			[ Public ]
 			> setVarsForQueue : Set the vars to passed to the queued callbacks once they are invoked. Only can set one.
@@ -117,10 +117,10 @@ var Future = (function () {
 		*/
 		this.setVarsForQueue = function (queueType, vars) {
 			if (vars instanceof Array) {			
-				if (queueType == this.FLAG_QUEUE_FOR_OK && __queue.argsForOK.length <= 0) {	
+				if (queueType == this.FLAG_QUEUE_TYPE_OK && __queue.argsForOK.length <= 0) {	
 					__queue.argsForOK = vars.slice(0);
 					return true;
-				} else if (queueType == this.FLAG_QUEUE_FOR_ERR && __queue.argsForERR.length <= 0) {	
+				} else if (queueType == this.FLAG_QUEUE_TYPE_ERR && __queue.argsForERR.length <= 0) {	
 					__queue.argsForERR = vars.slice(0);
 					return true;
 				}
@@ -136,7 +136,7 @@ var Future = (function () {
 		this.push = function (queueType, callbacks) {
 			var callback,
 				callbacksArray = (callbacks instanceof Array) ? callbacks : [callbacks],
-				type = (queueType == this.FLAG_QUEUE_FOR_OK || queueType == this.FLAG_QUEUE_FOR_ERR) ? queueType : null;
+				type = (queueType == this.FLAG_QUEUE_TYPE_OK || queueType == this.FLAG_QUEUE_TYPE_ERR) ? queueType : null;
 			
 			if (type !== null) {
 			
@@ -155,16 +155,16 @@ var Future = (function () {
 				<STR> queueType = the type of queue to flush
 		*/
 		this.flush = function (queueType) {
-			var type = (queueType == this.FLAG_QUEUE_FOR_OK || queueType == this.FLAG_QUEUE_FOR_ERR) ? queueType : null;
+			var type = (queueType == this.FLAG_QUEUE_TYPE_OK || queueType == this.FLAG_QUEUE_TYPE_ERR) ? queueType : null;
 			
 			if (type !== null) {
 			
 				var callback,
 					argsForQueue;
 				
-				if (type == this.FLAG_QUEUE_FOR_OK) {
+				if (type == this.FLAG_QUEUE_TYPE_OK) {
 					argsForQueue = __queue.argsForOK;
-				} else if (type == this.FLAG_QUEUE_FOR_ERR) {
+				} else if (type == this.FLAG_QUEUE_TYPE_ERR) {
 					argsForQueue = __queue.argsForERR;
 				}
 				
@@ -179,8 +179,8 @@ var Future = (function () {
 			}
 		}
 	}; {
-		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_OK", 0, false);
-		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_FOR_ERR", 1, false);
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_TYPE_OK", 0, false);
+		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_QUEUE_TYPE_ERR", 1, false);
 		_define(_cls_Future_Queue_Ctrl.prototype, "FLAG_CALLBACK_TYPE_PROP_NAME", "_CALLBACK_TYPE", false);
 	}
 	/*	Properties:
@@ -224,9 +224,9 @@ var Future = (function () {
 		*/
 		function __flushQueue() {
 			if (Future.FLAG_FUTURE_IS_OK === __status) {			
-				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_FOR_OK);				
+				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_TYPE_OK);				
 			} else if (Future.FLAG_FUTURE_IS_ERR === __status) {			
-				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_FOR_ERR);
+				__queueCtrl.flush(__queueCtrl.FLAG_QUEUE_TYPE_ERR);
 			}
 		}
 		/*	Return:
@@ -256,7 +256,7 @@ var Future = (function () {
 		*/
 		this.next = function (callbacksForOK) {
 			if (typeof callbacksForOK == "function" || callbacksForOK instanceof Array) {
-				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_FOR_OK, callbacksForOK);
+				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_TYPE_OK, callbacksForOK);
 				__flushQueue();
 			}
 			return this;
@@ -268,7 +268,7 @@ var Future = (function () {
 		*/
 		this.fall = function (callbacksForErr) {
 			if (typeof callbacksForErr == "function" || callbacksForErr instanceof Array) {
-				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_FOR_ERR, callbacksForErr);
+				__queueCtrl.push(__queueCtrl.FLAG_QUEUE_TYPE_ERR, callbacksForErr);
 				__flushQueue();
 			}
 			return this;
@@ -431,7 +431,7 @@ var Future = (function () {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_OK;
-				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_FOR_OK, args);
+				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_OK, args);
 				__flushQueue();
 			}
 			return this.report();
@@ -445,7 +445,7 @@ var Future = (function () {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_ERR;
-				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_FOR_ERR, args);
+				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, args);
 				__flushQueue();
 			}
 			return this.report();
