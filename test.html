@@ -181,6 +181,17 @@
 		if (count !== 3) {
 			return "The expected count = 3 but the actual count = " + count;
 		}
+		
+		count = 0;
+		f = Future.newOne("f" + futureCounts++);
+		f.next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .approve(2);
+		 
+		if (count !== 2) {
+			return "The expected count = 2 but the actual count = " + count;
+		}
+		
 		return true;
 	});
 	
@@ -198,6 +209,18 @@
 		if (count !== -2) {
 			return "The expected count = -2 but the actual count = " + count;
 		}
+		
+		count = 0;
+		f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function(num) { count += num; })
+		 .fall(function(num) { count -= num; })
+		 .disapprove(3);
+		
+		if (count !== -3) {
+			return "The expected count = -3 but the actual count = " + count;
+		}
+		
 		return true;
 	});
 	
@@ -283,6 +306,21 @@
 		if (count !== 3) {
 			return "The expected count = 3 but the actual count = " + count;
 		}
+		
+			
+		count = 0;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.swear();
+		
+		s.fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; });
+		
+		f.approve(2);
+		
+		if (count !== 2) {
+			return "The expected count = 2 but the actual count = " + count;
+		}
+		
 		return true;
 	});	
 	
@@ -295,13 +333,27 @@
 		 .next(function(num) { count += num; })
 		 .fall(function(num) { count -= num; })
 		 .fall(function(num) { count -= num; })
-		 .next(function(num) { count += num; })
+		 .next(function(num) { count += num; });
 		
-		f.disapprove(1);
+		f.disapprove([1]);
 		
 		if (count !== -2) {
 			return "The expected count = -2 but the actual count = " + count;
 		}
+			
+		count = 0;
+		f = Future.newOne("f" + futureCounts++);
+		s = f.swear();
+		
+		s.fall(function(num) { count -= num; })
+		 .next(function(num) { count += num; });
+		
+		f.disapprove(3);
+		
+		if (count !== -3) {
+			return "The expected count = -3 but the actual count = " + count;
+		}
+		
 		return true;
 	});
 		
@@ -1155,6 +1207,7 @@
 	});
 		
 	smokeTests.run();
+	
 	
 </script>
 
