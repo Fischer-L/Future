@@ -195,6 +195,23 @@
 		return true;
 	});
 	
+	smokeTests.add("Double approve future", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.next(function(num) { count = num; })
+		 .approve(1);
+		
+		f.approve(2);
+		f.next(function(num) { count = num; });
+		 
+		if (count !== 1) {
+			return "The expected count = 1 but the actual count = " + count;
+		}
+		
+		return true;
+	});
+	
 	smokeTests.add("Disapprove future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
@@ -219,6 +236,23 @@
 		
 		if (count !== -3) {
 			return "The expected count = -3 but the actual count = " + count;
+		}
+		
+		return true;
+	});
+	
+	smokeTests.add("Double disapprove future", function () {		
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++);
+		
+		f.fall(function(num) { count = num; })
+		 .disapprove(1);
+		
+		f.disapprove(2);
+		f.fall(function(num) { count = num; });
+		 
+		if (count !== 1) {
+			return "The expected count = 1 but the actual count = " + count;
 		}
 		
 		return true;
