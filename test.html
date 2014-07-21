@@ -392,6 +392,35 @@
 		return false;
 	});
 	
+	smokeTests.add("Inform swear", function () {
+	
+		var count = 0,
+			f = Future.newOne("f" + futureCounts++)
+			s = f.swear();
+		
+		s.during(function () {
+			for (var i = 0; i <arguments.length; i++) {
+				count += arguments[i];
+			}
+		  });
+		f.inform(1);
+		
+		if (count != 1) return "The expected count = 1 but the actual count = " + count;		
+		
+		count = 0;
+		
+		s.during(function () {
+			for (var i = 0; i <arguments.length; i++) {
+				count += arguments[i];
+			}
+		  });
+		f.inform([1, 1]);
+		
+		if (count != 4) return "The expected count = 4 but the actual count = " + count;
+		
+		return true;
+	});
+	
 	smokeTests.add("Approve swear", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++),
