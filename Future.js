@@ -11,6 +11,8 @@
 		<CLS> _cls_Future_Swear = The swear from one Future obj. We can use it to make the future obj swear to do sth after the future arrives. The swear obj has no right to settle the future so we can give it to outsiders. Let outsiders access the future obj without the ability to settle/interfere the future, kind of like jQuery's promise obj.
 		<OBJ> _futures = the table to storing the future objs
 	Methods:
+		[ Private ]
+		> _logErr : Log error
 		[ Public ]
 		> exist : Check if the specified Future obj is stored and made before.
 		> newOne : New one Future obj. Future will also store the generated Future obj. Thus we would be able to call Future.dump to track every Future obj's status and prevent from generating two Future obj for the same thing.
@@ -101,6 +103,8 @@ var Future = (function () {
 							 @ The prerequsite job is done not yet: Future.FLAG_FUTURE_NOT_YET
 			<OBJ> __queueCtrl = the controller to control the jobs deferred into the future, the instance of Future::_cls_Future_Queue_Ctrl
 		Methods:
+			[ Private ]
+			> __flushQueue : Call this::__queueCtrl to flush the corresponding jobs deferred into the future if this future is settled. Do not call this::__queueCtrl directly to flush, instead, use this method to prevent from flushing the job queue while the future is not yet settled.
 			[ Public ]
 			> getName : Get the name of future
 			> report : Report the future obj status
@@ -126,6 +130,15 @@ var Future = (function () {
 		var __andThenCount = 0;
 		var __status = Future.FLAG_FUTURE_NOT_YET;
 		var __queueCtrl = new _cls_Future_Queue_Ctrl;
+		/*
+		*/
+		function __flushQueue() {
+			if (Future.FLAG_FUTURE_IS_OK === __status) {			
+				__queueCtrl.flush("DEFERRED_QUEUE_FOR_OK");				
+			} else if (Future.FLAG_FUTURE_IS_ERR === __status) {			
+				__queueCtrl.flush("DEFERRED_QUEUE_FOR_ERR");
+			}
+		}
 		/*	Return:
 				<STR> the name of future
 		*/
@@ -135,28 +148,12 @@ var Future = (function () {
 		/*	Return: Refer to Private::__status
 		*/
 		this.report = function () {
-			
-			// Do sth as the job we are waiting finished and the future status is settleds.
-			if (Future.FLAG_FUTURE_IS_OK === __status) {
-			
-				__queueCtrl.flush("DEFERRED_QUEUE_FOR_OK");
-				
-			} else if (Future.FLAG_FUTURE_IS_ERR === __status) {
-			
-				__queueCtrl.flush("DEFERRED_QUEUE_FOR_ERR");
-				
-			} else if (__status !== Future.FLAG_FUTURE_NOT_YET
-					&& __status !== Future.FLAG_FUTURE_IS_OK
-					&& __status !== Future.FLAG_FUTURE_IS_ERR
+			if (   __status !== Future.FLAG_FUTURE_NOT_YET
+				&& __status !== Future.FLAG_FUTURE_IS_OK
+				&& __status !== Future.FLAG_FUTURE_IS_ERR
 			) {
 			// Sth wrong! the status is crupt so correct it.
-				var msg = "The unknown status of future" + __status;
-				if (console.error) {
-					console.error(msg);
-				} else {
-					console.log(msg);
-				}
-				
+				_logErr("The unknown future status : " + __status);
 				__status = Future.FLAG_FUTURE_NOT_YET;
 			}
 			
@@ -170,7 +167,7 @@ var Future = (function () {
 		this.next = function (callbacksForOK) {
 			if (typeof callbacksForOK == "function" || callbacksForOK instanceof Array) {
 				__queueCtrl.push("DEFERRED_QUEUE_FOR_OK", callbacksForOK);
-				this.report();
+				__flushQueue();
 			}
 			return this;
 		}
@@ -182,7 +179,7 @@ var Future = (function () {
 		this.fall = function (callbacksForErr) {
 			if (typeof callbacksForErr == "function" || callbacksForErr instanceof Array) {
 				__queueCtrl.push("DEFERRED_QUEUE_FOR_ERR", callbacksForErr);
-				this.report();
+				__flushQueue();
 			}
 			return this;
 		}
@@ -345,6 +342,7 @@ var Future = (function () {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_OK;
 				__queueCtrl.setVarsForQueue("DEFERRED_QUEUE_FOR_OK", args);
+				__flushQueue();
 			}
 			return this.report();
 		}
@@ -358,6 +356,7 @@ var Future = (function () {
 				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : [settledArgs];
 				__status = Future.FLAG_FUTURE_IS_ERR;
 				__queueCtrl.setVarsForQueue("DEFERRED_QUEUE_FOR_ERR", args);
+				__flushQueue();
 			}
 			return this.report();
 		}
@@ -414,13 +413,38 @@ var Future = (function () {
 			return this;
 		}
 	}
-		
 	/*	Properties:
 			[ Public ]
 			<OBJ> the property name is the future obj's name, the property value is the instance of Future::_cls_Future
 	*/
 	var _futures = {};
+	
+	/*	Arg:
+			<STR> The error message
+	*/
+	function _logErr(msg) {
 		
+		if (typeof Error == "function") {
+			try {
+				throw new Error;
+			} catch (e) {
+				
+				var stack = "";
+				if (typeof e.stack == "string") {
+					stack = e.stack.replace("Error", "");
+				}
+				
+				msg += " error " + stack;
+			}
+		}
+		
+		if (console.error) {
+			console.error(msg);
+		} else {
+			console.log(msg);
+		}
+	}
+	
 	return {
 		FLAG_FUTURE_NOT_YET : 0,
 		FLAG_FUTURE_IS_OK : 1,
