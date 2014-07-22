@@ -274,11 +274,12 @@ var Future = (function () {
 			<STR> name = the name of the future obj
 	*/
 	function _cls_Future(name) {
-		var __name = name;
-		var __andThenCount = 0;
-		var __status = Future.FLAG_FUTURE_NOT_YET;
-		var __queueCtrl = new _cls_Future_Queue_Ctrl;
-		var __duringCtrl = new _cls_Future_During_Ctrl;
+		var __name = name,
+			__swear = null,
+			__andThenCount = 0,
+			__status = Future.FLAG_FUTURE_NOT_YET,
+			__queueCtrl = new _cls_Future_Queue_Ctrl,
+			__duringCtrl = new _cls_Future_During_Ctrl;
 		/*
 		*/
 		function __flushQueue() {
@@ -373,43 +374,73 @@ var Future = (function () {
 					Mediate the jobs chained after calling this andThen methods to go to which future obj's jobs queue
 				Properties:
 					[ Private ]
-					<OBJ> _originalFuture = always this future obj
-					<OBJ> _successorFuture = the future obj for the jobs in the andThen future obj's jobs queue 
-					<*> _varsForReturnedPredecessor = the vars passed to the jobs in the andThen future obj's jobs queue if returning back to the predecessor
+					<OBJ> andThenFuture = The instance of _cls_Future which its _cls_Future_Swear obj will be returned outside.
+					<OBJ> originalFuture = The current instance of _cls_Future
+					<OBJ> originalSwear = The current instance of _cls_Future_Swear of the current instance of _cls_Future
+					<FN> okCallback, errCallback, duringCallback = The callbacks passed into this andThen method
+					<OBJ> newFuturePool = The pool managing the future/swear objs returned by calling this::okCallback/errCallback/duringCallback
 				Methods:
 					[ Private ]
-					> _callAndThenCallbacks : Run the callbacks passed into the predecessor's andThen method
+					> chainAndThenFutureOn : Chain the future jobs after this and-then onto the future/swear obj decided by the calling of callbacks
 					[ Public ]
-					> leavePredecessor : Leave the execution of jobs in the predecessor's queue first
-					> returnToPredecessor : Return to the predecessor's jobs queue
+					> callAndThenCallback : Call the callbacks passed into the andThen method
 			*/
-			var futureHandleMediator = (function (andThenFuture, originalFuture, okCallback, errCallback, duringCallback) {
+			var futureMediator = (function (andThenFuture, originalFuture, originalSwear, okCallback, errCallback, duringCallback) {
 					
-					var _newFuturePool = (function () {
+					/*	Properties:
+							[ Private ]
+							<ARR> __addeds = The added the future/swear objs
+						Methods:
+							[ Public ]
+							> add : Add one future/swear obj if not in this::__addeds
+							> exist : Check the existence of one future/swear obj
+					*/
+					var newFuturePool = (function () {
 					
-								var __addeds = [];
-								
-							return {
-								add : function (f) {									
-									if (   (f instanceof _cls_Future || f instanceof _cls_Future_Swear)
-										&& !this.exist(f)
-									) {
-										__addeds.push(f);
+							var __addeds = [];
+							
+						return {
+							/*	Arg:
+									<OBJ> f = One future/swear obj
+								Return:
+									@ OK: true
+									@ NG: false
+							*/
+							add : function (f) {									
+								if (   (f instanceof _cls_Future || f instanceof _cls_Future_Swear)
+									&& !this.exist(f)
+								) {
+									__addeds.push(f);
+									return true;
+								}
+								return false;
+							},
+							/*	Arg:
+									<OBJ> f = One future/swear obj
+								Return:
+									@ In this::__addeds: true
+									@ Not in this::__addeds: false
+							*/
+							exist : function (f) {
+								for (var i = 0; i < __addeds.length; i++) {
+									if (__addeds[i] === f) {
 										return true;
 									}
-									return false;
-								},
-								exist : function (f) {
-									for (var i = 0; i < __addeds.length; i++) {
-										if (__addeds[i] === f) {
-											return true;
-										}
-									}
-									return false;
 								}
-						}}());
+								return false;
+							}
+					}}());
 					
-					function _cmdAndThenFutureOn(baseFuture, cmd, useNewArgs, newArgs) {
+					/*	Properties:
+							[ Public ]
+							<BOO> [useNewArgs] = true means taking this::newArgs as the arguments, otherwise, taking the default arguments
+							<*|ARR> [newArgs] = The new arguments to pass into the following jobs
+						--------------------------------------
+						Arg:
+							<OBJ> baseFuture = The base future onto which the and-then future is chained; could be one future/swear obj
+							<STR> cmd = the command to chain
+					*/
+					function chainAndThenFutureOn(baseFuture, cmd) {
 					
 						if (andThenFuture.report() === Future.FLAG_FUTURE_NOT_YET) {
 							
@@ -417,178 +448,121 @@ var Future = (function () {
 							
 								case "approve":
 									baseFuture.next(function () {
-										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
 										andThenFuture.approve(args);
 									});
 								return;
 							
 								case "disapprove": 
 									baseFuture.fall(function () {
-										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
 										andThenFuture.disapprove(args);
 									});
 								return;
 								
 								case "inform":
 									baseFuture.during(function () {
-										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
 										andThenFuture.inform(args);									
 									});
 								return;
 							}
 						}
 					}
-					
+					chainAndThenFutureOn.newArgs = [];
+					chainAndThenFutureOn.useNewArgs = false;
+										
+				return {
 					/*	Arg:
 							<STR> predecessorStatus = the predecessor future obj's status
 							<ARR> varsForAndThen = the vars passed along the predecessor's queue and would be passed to the and-then callbacks
 					*/
-					function _callAndThenCallbacks (predecessorStatus, varsForAndThen) {
+					callAndThenCallback : function (predecessorStatus, varsForAndThen) {
 						
-						var cases = {								
-								totally_original : 0,								
-								original_future_but_new_args : 1,								
-								totally_new : 2
-							},
-							
-							callResultCase,
-							
+						var newFuture,
+							callType,
+							callResultCase,							
 							callResultValue,
-							
-							newFuture,
-							
-							newArgs,
-							
-							useNewArgs = false;
+							callbacks = {
+								okCallback : okCallback,
+								errCallback : errCallback,
+								duringCallback : duringCallback
+							};
 						
 						switch (predecessorStatus) {
-						
 							case Future.FLAG_FUTURE_IS_OK:
-								
-								if (typeof okCallback == "function") {
-								
-									callResultValue = okCallback.apply(null, varsForAndThen);		
-
-									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
-									
-										//callResultCase = cases.totally_new;
-										
-										newFuture = callResultValue;
-										
-									} else {
-									
-										//callResultCase = cases.original_future_but_new_args;
-										
-										newFuture = originalFuture;
-										newArgs = callResultValue;
-										useNewArgs = true;
-									}
-									
-								} else {
-								
-									//callResultCase = cases.totally_original;
-									
-									newFuture = originalFuture;
-								}
-								
-								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
-									_cmdAndThenFutureOn(newFuture, "approve", useNewArgs, newArgs);	
-								}
-								
-							break;
-						
-							case Future.FLAG_FUTURE_IS_ERR:
-								
-								if (typeof errCallback == "function") {
-								
-									callResultValue = errCallback.apply(null, varsForAndThen);		
-
-									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
-									
-										//callResultCase = cases.totally_new;
-										
-										newFuture = callResultValue;
-										
-									} else {
-									
-										//callResultCase = cases.original_future_but_new_args;
-										
-										newFuture = originalFuture;
-										newArgs = callResultValue;
-										useNewArgs = true;
-									}
-									
-								} else {
-								
-									//callResultCase = cases.totally_original;
-									
-									newFuture = originalFuture;
-								}
-								
-								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
-									_cmdAndThenFutureOn(newFuture, "disapprove", useNewArgs, newArgs);
-								}
-								
-							break;
-						
-							case Future.FLAG_FUTURE_NOT_YET:
-								
-								if (typeof duringCallback == "function") {
-								
-									callResultValue = duringCallback.apply(null, varsForAndThen);		
-
-									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
-									
-										//callResultCase = cases.totally_new;
-										
-										newFuture = callResultValue;
-										
-									} else {
-									
-										//callResultCase = cases.original_future_but_new_args;
-										
-										newFuture = originalFuture;
-										newArgs = callResultValue;
-										useNewArgs = true;
-									}
-									
-								} else {
-								
-									//callResultCase = cases.totally_original;
-									
-									newFuture = originalFuture;
-								}								
-								
-								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
-									_cmdAndThenFutureOn(newFuture, "approve", false, newArgs);
-									_cmdAndThenFutureOn(newFuture, "disapprove", false, newArgs);
-									_cmdAndThenFutureOn(newFuture, "inform", useNewArgs, newArgs);
-								}
+								callType = "okCallback";
 							break;
 							
+							case Future.FLAG_FUTURE_IS_ERR:
+								callType = "errCallback";
+							break;
+							
+							case Future.FLAG_FUTURE_NOT_YET:
+								callType = "duringCallback";
+							break;
 						}
+													
 						
-					}
-				return {
-					/*	Arg:
-							> predecessorStatus, varsForAndThens = refer to this::_callAndThenCallbacks
-					*/
-					leavePredecessor : function (predecessorStatus, varsForAndThens) {
-						_callAndThenCallbacks(predecessorStatus, varsForAndThens);
+						// Let's call the desired callback to
+						// decide the future onto which the future jobs after this and-then are chained
+						// and decide the arguments passed into the future jobs 
+						
+						chainAndThenFutureOn.newArgs = [];
+						chainAndThenFutureOn.useNewArgs = false;
+						
+						if (typeof callbacks[callType] == "function") {
+						
+							callResultValue = callbacks[callType].apply(null, varsForAndThen);		
+
+							if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
+							
+								newFuture = (callResultValue === originalFuture || callResultValue === originalSwear) ? originalFuture : callResultValue;
+								
+							} else {
+							
+								newFuture = originalFuture;
+								chainAndThenFutureOn.newArgs = callResultValue;
+								chainAndThenFutureOn.useNewArgs = true;
+							}
+							
+						} else {
+						
+							newFuture = originalFuture;
+						}						
+						
+						if (newFuturePool.add(newFuture)) { // We don't want to double chain onto the one chained before
+							
+							// Let's chain the future jobs after this and-then onto the future/swear obj decided by the calling of callbacks 
+							switch (predecessorStatus) {
+								case Future.FLAG_FUTURE_IS_OK:
+									chainAndThenFutureOn(newFuture, "approve");
+								break;
+								
+								case Future.FLAG_FUTURE_IS_ERR:
+									chainAndThenFutureOn(newFuture, "disapprove");
+								break;
+								
+								case Future.FLAG_FUTURE_NOT_YET:
+									chainAndThenFutureOn(newFuture, "approve");
+									chainAndThenFutureOn(newFuture, "disapprove");
+									chainAndThenFutureOn(newFuture, "inform");
+								break;
+							}
+						}
 					}
 				}
-			}(andThenFuture, this, okCallback, errCallback, duringCallback));
+			}(andThenFuture, this, __swear, okCallback, errCallback, duringCallback));
 			
-			// After the previous job ends, levave the queue first to handle the and-then jobs
 			this.next(function () {
-				futureHandleMediator.leavePredecessor(Future.FLAG_FUTURE_IS_OK, Array.prototype.slice.call(arguments, 0));
-			});
-			this.fall(function () {
-				futureHandleMediator.leavePredecessor(Future.FLAG_FUTURE_IS_ERR, Array.prototype.slice.call(arguments, 0));
-			});
-			this.during(function () {
-				futureHandleMediator.leavePredecessor(Future.FLAG_FUTURE_NOT_YET, Array.prototype.slice.call(arguments, 0));
-			});
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_OK, Array.prototype.slice.call(arguments, 0));
+				})
+				.fall(function () {
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_ERR, Array.prototype.slice.call(arguments, 0));
+				})
+				.during(function () {
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_NOT_YET, Array.prototype.slice.call(arguments, 0));
+				});
 			
 			// Return the and-then future's swear obj so the following jobs will be chained to the and-then future
 			return andThenFuture.swear();
@@ -636,7 +610,10 @@ var Future = (function () {
 				<OBJ> The instance of _cls_Future_Swear assocciated with this future obj
 		*/
 		this.swear = function () {
-			return new _cls_Future_Swear(this);
+			if (!(__swear instanceof _cls_Future_Swear)) {
+				__swear = new _cls_Future_Swear(this);
+			}
+			return __swear;
 		}
 	}
 	/*	Properties: 
