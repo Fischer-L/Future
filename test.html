@@ -1385,6 +1385,77 @@
 		
 	});
 		
+	smokeTests.add("Future inform and then original future", function () {
+		
+		var f,
+			msg = "",
+			exp = "",
+			next0 = " next_0 ",
+			fall0 = " fall_0 ",
+			during0 = " during_0 ",
+			next1 = " next_1 ",
+			fall1 = " fall_1 ",
+			during1 = " during_1 ";
+		
+		function inform() {
+			f.inform("");
+			exp += during0 + during1;
+			if (exp !== msg) throw new Error("Expected = " + exp + " but Actual = " + msg);
+		}
+		
+		function setup() {
+			
+			msg = exp = "";
+			
+			f = Future.newOne("f" + futureCounts++);
+			
+			f.andThen(
+					function (txt) {
+						msg += next0 + txt;
+						return msg;
+					},
+					function (txt) {
+						msg += fall0 + txt;
+						return msg;				
+					},
+					function (txt) {
+						msg += during0 + txt;
+						return f;
+					}
+			  )
+			 .next(function (txt) {
+					msg += next1 + txt;
+			  })
+			 .fall(function (txt) {	
+					msg += fall1 + txt;	  
+			  })
+			 .during(function (txt) {
+				msg += during1 + txt;
+			 });
+		 }
+		
+		setup();
+		inform();
+		inform();
+		inform();		
+		
+		f.approve("");
+		exp += next0 + next1;
+		if (exp !== msg) throw new Error("Expected = " + exp + " but Actual = " + msg);
+		
+		setup();
+		inform();
+		inform();
+		inform();		
+		
+		f.disapprove("");
+		exp += fall0 + fall1;
+		if (exp !== msg) throw new Error("Expected = " + exp + " but Actual = " + msg);
+		
+		
+		return true;
+	});
+	
 	smokeTests.run();
 	
 	

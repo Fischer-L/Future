@@ -254,10 +254,16 @@ var Future = (function () {
 			> andThen : Add jobs and execute the jobs once the future status is settled.
 						Calling this method gives us a chance to make the jobs after this method chained to another future/swear obj.
 						According to the returned value of the called callback, there could be four cases:
-						- Case 1: the and-then callback returns one future or one swear obj different from the original one so the future jobs chained after this andThen call would be tied to this new successor future/swear obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
+						- Case 1: the ok/error and-then callback returns one future or one swear obj different from the original one so the future jobs chained after this andThen call would be tied to this new successor future/swear obj and the arguments for jobs in the successor's queue would depend on the successor's arguments settled with.
 						- Case 2: the and-then callback returns the original future obj so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
-						- Case 3: the and-then callbacks returns anything but future obj so the successor would be the original one still and the returned value would be the arguments for jobs in the successor's queue.
+						- Case 3: the and-then callbacks returns one array of arguments but future obj so the successor would be the original one still and that returned array would be the arguments for jobs in the successor's queue.
 						- Case 4: No and-then callbacks could be called so the successor would be the original one still and the arguments for jobs in the successor's queue would be arguments passed along the original one's queue.
+						- Case 5: The during and-then callbacks have been called and return other future/swear obj. In this case, the jobs chained after the andThen method have multiple future to chose so the race among futures begins.
+						          The following chained jobs will be invoked in the future which is settled first.
+								  For example, two during callbacks generates two futures, the ok callback keeps the original future and the error callback generates another new future.
+								  If one of the futures from the during callbacks is settled first, the chained jobs are invoked in this future.
+								  Or if the ok callback is called first, the chained jobs are invoked in the original future.
+								  Or if the error callback is called first, the chained jobs are invoked in the first-settled one among the remaining three futures (two from the during callbacks, one from the error callback).
 						This method is kind of like jQuery's then.
 			> inform : Inform the future's progress. Calling this method will invoke the during callbacks in the order they were added. The during callbacks won't be cleared after invoked so they are able to receive the next notification. No effect as the future is settled, kind of like jQuery's notify. Unlike jQuery's notify, however, the during callback added later is unable to receive the notification informed before, which is possible in jQuery's notify.
 			> approve : Approve the future. Calling this method will invoke the callbacks for the ok future in the order they were added. The callbacks are cleared after invoked. This is to settle the future with the OK status, kind of like jQuery's resolve
@@ -351,18 +357,23 @@ var Future = (function () {
 			return this;
 		}
 		/*	Arg: 
-				<FN> okCallback = the job to do in the OK future
-				<FN> errCallback = the job to do in the error future
+				<FN> [okCallback] = the job to do in the OK future
+				<FN> [errCallback] = the job to do in the error future
+				<FN> [duringCallback] = the job to receive the notification from future
 			Return:
 				<OBJ> one instance of Future::_cls_Future_Swear.
 					  However the execution of jobs chained after this method does not depend on this returned swear obj but the returned value by the input callback
 		*/
-		this.andThen = function (okCallback, errCallback) {
+		this.andThen = function (okCallback, errCallback, duringCallback) {
+			
+			// New one future obj for the and-then jobs. This future obj is kind of like an mediator future.
+			var andThenFuture = Future.newOne(__name + "::andThen_" + __andThenCount++);
+			
 			/*	Func:
 					Mediate the jobs chained after calling this andThen methods to go to which future obj's jobs queue
 				Properties:
 					[ Private ]
-					<OBJ> _predecessorFuture = always this future obj
+					<OBJ> _originalFuture = always this future obj
 					<OBJ> _successorFuture = the future obj for the jobs in the andThen future obj's jobs queue 
 					<*> _varsForReturnedPredecessor = the vars passed to the jobs in the andThen future obj's jobs queue if returning back to the predecessor
 				Methods:
@@ -372,79 +383,191 @@ var Future = (function () {
 					> leavePredecessor : Leave the execution of jobs in the predecessor's queue first
 					> returnToPredecessor : Return to the predecessor's jobs queue
 			*/
-			var futureHandleMediator = (function (predecessorFuture, okCallback, errCallback) {
-					var _predecessorFuture = predecessorFuture;
-					var _successorFuture = null;
-					var _varsForReturnedPredecessor;
-					/*	Properties:
-							[ Public ]
-							<*> result = the result returned by this.forOK or this.Err(depending on which one is called).
-						Methods:
-							[ Public ]
-							<FN> forOK, forErr = the callbacks passed into the predecessor's andThen method							
-					*/
-					var _andThenCallbacks = {
-						forOK : okCallback,
-						forErr : errCallback,
-						result : undefined
-					};
-					/*	Arg:
-							<STR> predecessorStatus = the predecessor future obj's status
-							<ARR> varsForAndThens = the vars passed along the predecessor's queue and would be passed to the and-then callbacks
-					*/
-					var _callAndThenCallbacks = function (predecessorStatus, varsForAndThens) {
-						
-						// The successor future obj is going to be determined in the below based on the four cases described above:
-						
-						// Call the and-then callbacks
-						if (   
-							   predecessorStatus === Future.FLAG_FUTURE_IS_OK
-							&& typeof _andThenCallbacks.forOK == "function"
-						) {
-							_andThenCallbacks.result = _andThenCallbacks.forOK.apply(null, varsForAndThens);
+			var futureHandleMediator = (function (andThenFuture, originalFuture, okCallback, errCallback, duringCallback) {
+					
+					var _newFuturePool = (function () {
+					
+								var __addeds = [];
+								
+							return {
+								add : function (f) {									
+									if (   (f instanceof _cls_Future || f instanceof _cls_Future_Swear)
+										&& !this.exist(f)
+									) {
+										__addeds.push(f);
+										return true;
+									}
+									return false;
+								},
+								exist : function (f) {
+									for (var i = 0; i < __addeds.length; i++) {
+										if (__addeds[i] === f) {
+											return true;
+										}
+									}
+									return false;
+								}
+						}}());
+					
+					function _cmdAndThenFutureOn(baseFuture, cmd, useNewArgs, newArgs) {
+					
+						if (andThenFuture.report() === Future.FLAG_FUTURE_NOT_YET) {
 							
-						} else if (
-							   predecessorStatus === Future.FLAG_FUTURE_IS_ERR
-							&& typeof _andThenCallbacks.forErr == "function"
-						) {						
-							_andThenCallbacks.result = _andThenCallbacks.forErr.apply(null, varsForAndThens);
-						
-						} else { // The Case 4:
-							_varsForReturnedPredecessor = varsForAndThens;
-							_successorFuture = _predecessorFuture;
-							return;
-						}
-						
-						// Determine the successor obj
-						if (   _andThenCallbacks.result instanceof _cls_Future
-							|| _andThenCallbacks.result instanceof _cls_Future_Swear
-						) {
-						
-							if (_andThenCallbacks.result !== _predecessorFuture) { // The Case 1:
+							switch (cmd) {
 							
-								_varsForReturnedPredecessor = undefined;
-								_successorFuture = _andThenCallbacks.result;
-								// Here we put the andThen future obj into the successor's jobs queue
-								// so the jobs in the andThen jobs queue can follow the successor's queue
-								_successorFuture.next(function () {
-									andThenFuture.approve(Array.prototype.slice.call(arguments, 0));
-								});
-								_successorFuture.fall(function () {
-									andThenFuture.disapprove(Array.prototype.slice.call(arguments, 0));
-								});
+								case "approve":
+									baseFuture.next(function () {
+										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										andThenFuture.approve(args);
+									});
+								return;
+							
+								case "disapprove": 
+									baseFuture.fall(function () {
+										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										andThenFuture.disapprove(args);
+									});
 								return;
 								
-							} else { // The Case 2:
-								_varsForReturnedPredecessor = varsForAndThens;
-								_successorFuture = _predecessorFuture;
+								case "inform":
+									baseFuture.during(function () {
+										var args = useNewArgs ? newArgs : Array.prototype.slice.call(arguments, 0);
+										andThenFuture.inform(args);									
+									});
 								return;
 							}
-							
-						} else { // The Case 3:
-							_varsForReturnedPredecessor = _andThenCallbacks.result;
-							_successorFuture = _predecessorFuture;
-							return;
 						}
+					}
+					
+					/*	Arg:
+							<STR> predecessorStatus = the predecessor future obj's status
+							<ARR> varsForAndThen = the vars passed along the predecessor's queue and would be passed to the and-then callbacks
+					*/
+					function _callAndThenCallbacks (predecessorStatus, varsForAndThen) {
+						
+						var cases = {								
+								totally_original : 0,								
+								original_future_but_new_args : 1,								
+								totally_new : 2
+							},
+							
+							callResultCase,
+							
+							callResultValue,
+							
+							newFuture,
+							
+							newArgs,
+							
+							useNewArgs = false;
+						
+						switch (predecessorStatus) {
+						
+							case Future.FLAG_FUTURE_IS_OK:
+								
+								if (typeof okCallback == "function") {
+								
+									callResultValue = okCallback.apply(null, varsForAndThen);		
+
+									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
+									
+										//callResultCase = cases.totally_new;
+										
+										newFuture = callResultValue;
+										
+									} else {
+									
+										//callResultCase = cases.original_future_but_new_args;
+										
+										newFuture = originalFuture;
+										newArgs = callResultValue;
+										useNewArgs = true;
+									}
+									
+								} else {
+								
+									//callResultCase = cases.totally_original;
+									
+									newFuture = originalFuture;
+								}
+								
+								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
+									_cmdAndThenFutureOn(newFuture, "approve", useNewArgs, newArgs);	
+								}
+								
+							break;
+						
+							case Future.FLAG_FUTURE_IS_ERR:
+								
+								if (typeof errCallback == "function") {
+								
+									callResultValue = errCallback.apply(null, varsForAndThen);		
+
+									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
+									
+										//callResultCase = cases.totally_new;
+										
+										newFuture = callResultValue;
+										
+									} else {
+									
+										//callResultCase = cases.original_future_but_new_args;
+										
+										newFuture = originalFuture;
+										newArgs = callResultValue;
+										useNewArgs = true;
+									}
+									
+								} else {
+								
+									//callResultCase = cases.totally_original;
+									
+									newFuture = originalFuture;
+								}
+								
+								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
+									_cmdAndThenFutureOn(newFuture, "disapprove", useNewArgs, newArgs);
+								}
+								
+							break;
+						
+							case Future.FLAG_FUTURE_NOT_YET:
+								
+								if (typeof duringCallback == "function") {
+								
+									callResultValue = duringCallback.apply(null, varsForAndThen);		
+
+									if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
+									
+										//callResultCase = cases.totally_new;
+										
+										newFuture = callResultValue;
+										
+									} else {
+									
+										//callResultCase = cases.original_future_but_new_args;
+										
+										newFuture = originalFuture;
+										newArgs = callResultValue;
+										useNewArgs = true;
+									}
+									
+								} else {
+								
+									//callResultCase = cases.totally_original;
+									
+									newFuture = originalFuture;
+								}								
+								
+								if (_newFuturePool.add(newFuture)) { // We don't want to double command on the one did before
+									_cmdAndThenFutureOn(newFuture, "approve", false, newArgs);
+									_cmdAndThenFutureOn(newFuture, "disapprove", false, newArgs);
+									_cmdAndThenFutureOn(newFuture, "inform", useNewArgs, newArgs);
+								}
+							break;
+							
+						}
+						
 					}
 				return {
 					/*	Arg:
@@ -452,33 +575,9 @@ var Future = (function () {
 					*/
 					leavePredecessor : function (predecessorStatus, varsForAndThens) {
 						_callAndThenCallbacks(predecessorStatus, varsForAndThens);
-					},
-					/*	Arg:
-							<STR> predecessorStatus = the status of predecessor future obj
-					*/
-					returnToPredecessor : function (predecessorStatus) {
-						// Before returning to the predecessor future, we have to decide the future jobs inside the and-then future obj should follow the predecessor's jobs queue.
-						// Next we are going to act based on the type of successor...
-						if (_successorFuture === _predecessorFuture) {
-						// The successor future obj is the predecessor future.
-						// the future jobs inside the and-then future obj shall follow the successor future obj's jobs queue and the execiton depends on the successor's status.
-						// So let's settle the and-then future according the predecessor's status.
-							if (predecessorStatus === Future.FLAG_FUTURE_IS_OK) {
-								andThenFuture.approve(_varsForReturnedPredecessor);
-							} else if (predecessorStatus === Future.FLAG_FUTURE_IS_ERR) {
-								andThenFuture.disapprove(_varsForReturnedPredecessor);
-							}
-						} else {
-						// The successor is not the predecessor but another future obj,
-						// it represents the execution of the jobs future inside the and-then future obj will be taken care of by another future obj.
-						// So just do nothing and return to the predecessor future obj and the jobs in the predecessor future obj's queue will run afterwards.
-						}
 					}
 				}
-			}(this, okCallback, errCallback));
-			
-			// New one future obj for the and-then jobs. This future obj is kind of like an mediator future.
-			var andThenFuture = Future.newOne(__name + "::andThen_" + __andThenCount++);
+			}(andThenFuture, this, okCallback, errCallback, duringCallback));
 			
 			// After the previous job ends, levave the queue first to handle the and-then jobs
 			this.next(function () {
@@ -487,13 +586,8 @@ var Future = (function () {
 			this.fall(function () {
 				futureHandleMediator.leavePredecessor(Future.FLAG_FUTURE_IS_ERR, Array.prototype.slice.call(arguments, 0));
 			});
-			
-			// After the and-then jobs are done, return back to this original future obj
-			this.next(function () {
-				futureHandleMediator.returnToPredecessor(Future.FLAG_FUTURE_IS_OK);
-			});
-			this.fall(function () {
-				futureHandleMediator.returnToPredecessor(Future.FLAG_FUTURE_IS_ERR);
+			this.during(function () {
+				futureHandleMediator.leavePredecessor(Future.FLAG_FUTURE_NOT_YET, Array.prototype.slice.call(arguments, 0));
 			});
 			
 			// Return the and-then future's swear obj so the following jobs will be chained to the and-then future
