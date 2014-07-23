@@ -810,14 +810,13 @@ var Future = (function () {
 					@ NG: null
 			*/
 			newOne : function (name) {
-				var future = null;
 				if (name && typeof name == "string") {
 					if (!this.exist(name)) {
 						_futures[name] = new _cls_Future(name);
-						future = _futures[name];
+						return _futures[name];
 					}
 				}
-				return future;
+				return null;
 			},
 			/*	Arg:
 					<STR> name = the name of future obj
