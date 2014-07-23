@@ -474,32 +474,28 @@ var Future = (function () {
 							<STR> cmd = the command to chain
 					*/
 					function chainAndThenFutureOn(baseFuture, cmd) {
-					
-						if (andThenFuture.report() === Future.FLAG_FUTURE_NOT_YET) {
+						switch (cmd) {
+						
+							case "approve":
+								baseFuture.next(function () {
+									var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
+									andThenFuture.approveWith(this, args);
+								});
+							return;
+						
+							case "disapprove": 
+								baseFuture.fall(function () {
+									var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
+									andThenFuture.disapproveWith(this, args);
+								});
+							return;
 							
-							switch (cmd) {
-							
-								case "approve":
-									baseFuture.next(function () {
-										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
-										andThenFuture.approve(args);
-									});
-								return;
-							
-								case "disapprove": 
-									baseFuture.fall(function () {
-										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
-										andThenFuture.disapprove(args);
-									});
-								return;
-								
-								case "inform":
-									baseFuture.during(function () {
-										var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
-										andThenFuture.inform(args);									
-									});
-								return;
-							}
+							case "inform":
+								baseFuture.during(function () {
+									var args = chainAndThenFutureOn.useNewArgs ? chainAndThenFutureOn.newArgs : Array.prototype.slice.call(arguments, 0);
+									andThenFuture.informWith(this, args);									
+								});
+							return;
 						}
 					}
 					chainAndThenFutureOn.newArgs = [];
