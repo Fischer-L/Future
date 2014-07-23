@@ -80,7 +80,7 @@
 					li = base.cloneNode(true);
 					li.innerHTML = "TEST :&nbsp;&nbsp;" + this.tests[i]._tag;
 					try {
-						li._errMsg = this.tests[i]();
+						li._errMsg = this.tests[i].call(this);
 					} catch(e) {
 						li._errMsg = e.toString() + "<br/>&nbsp;&nbsp;&nbsp;&nbsp;" + e.stack;
 					}
@@ -94,6 +94,10 @@
 					
 					ul.appendChild(li);
 				}
+			},
+			
+			assertEqual : function (expected, actual) {
+				if (expected !== actual) throw new Error("Expected = " + expected + " but Actual = " + actual);
 			}
 		};	
 	
@@ -1589,7 +1593,114 @@
 		
 		f.disapprove("");
 		exp += fall0 + fall1 + sugar;
-		if (exp !== msg) throw new Error("Expected = " + exp + " but Actual = " + msg);		
+		if (exp !== msg) throw new Error("Expected = " + exp + " but Actual = " + msg);	
+		
+		return true;
+	});
+	
+	smokeTests.add("Future inform and then other futures", function () {
+		
+		var that = this,
+			f,
+			nf,
+			msg = "",
+			exp = "",
+			sugar = " sugar ",
+			next0 = " next_0 ",
+			fall0 = " fall_0 ",
+			during0 = " during_0 ",
+			next1 = " next_1 ",
+			fall1 = " fall_1 ",
+			during1 = " during_1 ";
+		
+		function inform(f, txt, exp) {
+			f.inform(txt);
+			that.assertEqual(exp, msg);
+		}
+		
+		function setup() {
+			
+			nf = [];
+			msg = exp = "";
+			
+			f = Future.newOne("f" + futureCounts++);
+			f.txt = " by f "
+			
+			f.andThen(
+					function (txt) {
+						msg += next0 + txt;
+						return sugar;
+					},
+					function (txt) {
+						msg += fall0 + txt;		
+					},
+					function (txt) {
+						msg += during0 + txt;
+						nf.push(Future.newOne("f" + futureCounts++));
+						nf[nf.length-1].txt = " by nf[" + (nf.length-1) + "]"; 
+						return nf[nf.length-1];
+					}
+			  )
+			 .next(function (txt) {
+					msg += next1 + txt;
+			  })
+			 .fall(function (txt) {	
+					msg += fall1 + txt;	  
+			  })
+			 .during(function (txt) {
+				msg += during1 + txt;
+			 });
+		 }
+		
+		setup();
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);
+		
+		msg = "";
+		exp = during1 + nf[0].txt;		
+		inform(nf[0], nf[0].txt, exp);
+		msg = "";
+		exp = during1 + nf[1].txt;		
+		inform(nf[1], nf[1].txt, exp);
+		msg = "";
+		exp = during1 + nf[2].txt;		
+		inform(nf[2], nf[2].txt, exp);
+		
+		msg = "";
+		exp = next0 + f.txt + next1 + sugar;
+		f.approve(f.txt);
+		this.assertEqual(exp, msg);
+		
+		exp = msg = "";
+		nf[0].approve(nf[0].txt);
+		this.assertEqual(exp, msg);
+		
+		exp = msg = "";
+		inform(nf[1], nf[1], exp);
+		
+		setup();
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);
+		exp += during0 + f.txt;
+		inform(f, f.txt, exp);		
+		
+		msg = "";
+		exp = fall1 + nf[1].txt;
+		nf[1].disapprove(nf[1].txt);
+		
+		msg = "";
+		exp = fall0 + f.txt;
+		f.disapprove(f.txt);
+		this.assertEqual(exp, msg);
+		
+		exp = msg = "";
+		inform(nf[2], nf[2], exp);
 		
 		return true;
 	});
