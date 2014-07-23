@@ -244,6 +244,43 @@
 		return true;
 	});
 	
+	smokeTests.add("Approve future with context", function () {
+		
+		var f,
+			exp,
+			msg,
+			txt = " txt ",
+			ctx = {
+				sugar : " sugar "
+			};
+			
+		function setup() {
+			exp = msg = "";
+			f = Future.newOne("f" + futureCounts++);
+			f.next(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; });			 
+		}
+		
+		setup();
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.approveWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		setup();
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		f.approveWith(null, txt);
+		this.assertEqual(exp, msg);
+		
+		return true;
+	});
+	
 	smokeTests.add("Disapprove future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
@@ -290,6 +327,41 @@
 		return true;
 	});
 	
+	smokeTests.add("Disapprove future with context", function () {
+		
+		var f,
+			exp,
+			msg,
+			txt = " txt ",
+			ctx = {
+				sugar : " sugar "
+			};
+			
+		function setup() {
+			exp = msg = "";
+			f = Future.newOne("f" + futureCounts++);
+			f.next(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; });			 
+		}
+		
+		setup();
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.disapproveWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		setup();
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		f.disapproveWith(null, txt);
+		this.assertEqual(exp, msg);
+		
+		return true;
+	});
+	
 	smokeTests.add("Approve future anyway", function () {
 		
 		var sum = 0,
@@ -310,6 +382,46 @@
 		return sum == 2;
 	});
 	
+	smokeTests.add("Approve future anyway with context", function () {
+		
+		var f,
+			exp,
+			msg,
+			txt = " txt ",
+			ctx = {
+				sugar : " sugar "
+			};
+			
+		function setup() {
+			exp = msg = "";
+			f = Future.newOne("f" + futureCounts++);
+			f.next(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .anyway(function(txt) { msg += txt + this.sugar; });			 
+		}
+		
+		setup();
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.approveWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		setup();
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		f.approveWith(null, txt);
+		this.assertEqual(exp, msg);
+		
+		return true;
+	});
+	
 	smokeTests.add("Disapprove future anyway", function () {
 		
 		var sum = 0,
@@ -328,6 +440,44 @@
 		f.disapprove(1);
 		
 		return sum == 0;
+	});
+	
+	smokeTests.add("Disapprove future anyway with context", function () {
+		
+		var f,
+			exp,
+			msg,
+			txt = " txt ",
+			ctx = {
+				sugar : " sugar "
+			};
+			
+		function setup() {
+			exp = msg = "";
+			f = Future.newOne("f" + futureCounts++);
+			f.next(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .next(function(txt) { msg += txt + this.sugar; })
+			 .anyway(function(txt) { msg += txt + this.sugar; });			 
+		}
+		
+		setup();
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.disapproveWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		setup();
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		exp += txt + window.sugar;
+		f.disapproveWith(null, txt);
+		this.assertEqual(exp, msg);
+		
+		return true;
 	});
 	
 	smokeTests.add("Report future", function () {

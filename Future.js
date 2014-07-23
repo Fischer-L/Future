@@ -96,7 +96,8 @@ var Future = (function () {
 			<ARR> __queue = the queue of jobs to call when the future is settled. The element inside are callbacks for jobs. Each callback would be added one property which bears the value of this::FLAG_QUEUE_TYPE_* to indicate the type of callback
 		Methods:
 			[ Public ]
-			> setVarsForQueue : Set the vars to be passed into the queued callbacks once they are invoked. Only can set one.
+			> setVarsForQueue : Set the vars to be passed into the queued callbacks once they are invoked. Only can set once.
+			> setContextForQueue : Set the this obj used when invoking jobs. Only can set once.
 			> push : Add one job(callback) into the queue.
 			> flush : Call the queued callbacks in the order they are pushed. After flushing the queue would be empty.
 	*/
@@ -105,11 +106,14 @@ var Future = (function () {
 				[ Public ]
 				<ARR> argsForOK = the array of arguments for the jobs queued for ok
 				<ARR> argsForERR = the array of arguments for the jobs queued for error
+				<OBJ> contextForOK, contextForERR = the this obj used when invoking jobs; Default is window.
 		*/
 		var __queue = []; {
 			__queue.argsForOK = [];
+			__queue.contextForOK = window;
 			__queue.argsForERR = [];
-		}		
+			__queue.contextForERR = window;
+		}
 		/*	Arg:
 				<STR> queueType = the queue type. Only accept the type of this::FLAG_QUEUE_TYPE_OK/ERR
 				<ARR> vars = the vars to passed to the queued callbacks once they are invoked
@@ -128,6 +132,25 @@ var Future = (function () {
 				}
 			}			
 			return false;
+		}
+		/*	Arg:
+				<STR> queueType = the queue type. Only accept the type of this::FLAG_QUEUE_TYPE_OK/ERR
+				<OBJ> context = the this obj used when invoking jobs, cannot be null or undefined
+			Return:
+				@ OK: true
+				@ NG: false
+		*/
+		this.setContextForQueue = function (queueType, context) {
+			if (context !== null && context !== undefined) {			
+				if (queueType == this.FLAG_QUEUE_TYPE_OK && __queue.contextForOK === window) {	
+					__queue.contextForOK = context;
+					return true;
+				} else if (queueType == this.FLAG_QUEUE_TYPE_ERR && __queue.contextForERR === window) {
+					__queue.contextForERR = context;
+					return true;
+				}
+			}			
+			return false;		
 		}
 		/*	Arg:
 				<STR> queueType = the queue type
@@ -162,12 +185,15 @@ var Future = (function () {
 			if (type !== null) {
 			
 				var callback,
-					argsForQueue;
+					argsForQueue,
+					contextForQueue;
 				
 				if (type == this.FLAG_QUEUE_TYPE_OK) {
 					argsForQueue = __queue.argsForOK;
+					contextForQueue = __queue.contextForOK;
 				} else if (type == this.FLAG_QUEUE_TYPE_ERR) {
 					argsForQueue = __queue.argsForERR;
+					contextForQueue = __queue.contextForERR;
 				}
 				
 				callback = __queue.shift();
@@ -177,7 +203,7 @@ var Future = (function () {
 						|| callback[this.FLAG_CALLBACK_TYPE_PROP_NAME] == this.FLAG_QUEUE_TYPE_ANYWAY
 					) {
 						try {
-							callback.apply(null, argsForQueue);
+							callback.apply(contextForQueue, argsForQueue);
 						} catch (err) {
 							_logErr("" + err);
 						}
@@ -267,7 +293,9 @@ var Future = (function () {
 						This method is kind of like jQuery's then.
 			> inform : Inform the future's progress. Calling this method will invoke the during callbacks in the order they were added. The during callbacks won't be cleared after invoked so they are able to receive the next notification. No effect as the future is settled, kind of like jQuery's notify. Unlike jQuery's notify, however, the during callback added later is unable to receive the notification informed before, which is possible in jQuery's notify.
 			> approve : Approve the future. Calling this method will invoke the callbacks for the ok future in the order they were added. The callbacks are cleared after invoked. This is to settle the future with the OK status, kind of like jQuery's resolve
+			> approveWith : Approve the future with the given context(this obj), kind of like jQuery's resolveWith
 			> disapprove : Disapprove the future. Calling this method will invoke the callbacks for the error future in the order they were added. The callbacks are cleared after invoked. This is to settle the future with the Error status, kind of like jQuery's reject
+			> disapproveWith : Disapprove the future with the given context(this obj), kind of like jQuery's rejectWith
 			> swear : Get the swear obj assocciated with this future obj, kind of like jQuery's promise
 	------------------------------------------------------------------------------------------------
 		Arg:
@@ -593,6 +621,19 @@ var Future = (function () {
 			return this.report();
 		}
 		/*	Arg:
+				<OBJ> context = the this obj used when invoking queued up jobs
+				<*|ARR> [settledArgs] = refer to this.approve
+			Return:
+				Refer to this.report
+		*/
+		this.approveWith = function (context, settledArgs) {
+			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
+				__queueCtrl.setContextForQueue(__queueCtrl.FLAG_QUEUE_TYPE_OK, context);
+				this.approve(settledArgs);
+			}
+			return this.report();
+		}
+		/*	Arg:
 				<*|ARR> [settledArgs] = the var to pass along to the future jobs(functions); if multiple, put in one array. Please note that if only one var to pass along, but, that var is an array, please still wrap that var in one array or it woudl be treated as passing in mulitple vars.
 			Return:
 				Refer to this.report
@@ -603,6 +644,19 @@ var Future = (function () {
 				__status = Future.FLAG_FUTURE_IS_ERR;
 				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, args);
 				__flushQueue();
+			}
+			return this.report();
+		}
+		/*	Arg:
+				<OBJ> context = the this obj used when invoking queued up jobs
+				<*|ARR> [settledArgs] = refer to this.disapprove
+			Return:
+				Refer to this.report
+		*/
+		this.disapproveWith = function (context, settledArgs) {
+			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
+				__queueCtrl.setContextForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, context);
+				this.disapprove(settledArgs);
 			}
 			return this.report();
 		}
