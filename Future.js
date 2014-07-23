@@ -240,15 +240,19 @@ var Future = (function () {
 			return __durings.length;
 		}
 		/*	Arg:
+				<OBJ> context = the this obj used when invoking jobs
 				<ARR> args = the arguments to pass into the job when invoking each job
 		*/
-		this.loop = function (args) {
+		this.loop = function (context, args) {
 			
 			if (args instanceof Array) {
 				
 				for (var i = 0; i < __durings.length; i++) {
 					try {
-						__durings[i].apply(null, args);
+						__durings[i].apply(
+							(context == null || context === undefined) ? window : context,
+							args
+						);
 					} catch (err) {
 						_logErr("" + err);
 					}
@@ -291,7 +295,8 @@ var Future = (function () {
 								  Or if the ok callback is called first, the chained jobs are invoked in the original future.
 								  Or if the error callback is called first, the chained jobs are invoked in the first-settled one among the remaining three futures (two from the during callbacks, one from the error callback).
 						This method is kind of like jQuery's then.
-			> inform : Inform the future's progress. Calling this method will invoke the during callbacks in the order they were added. The during callbacks won't be cleared after invoked so they are able to receive the next notification. No effect as the future is settled, kind of like jQuery's notify. Unlike jQuery's notify, however, the during callback added later is unable to receive the notification informed before, which is possible in jQuery's notify.
+			> inform : Inform about the future's progress. Calling this method will invoke the during callbacks in the order they were added. The during callbacks won't be cleared after invoked so they are able to receive the next notification. No effect as the future is settled, kind of like jQuery's notify. Unlike jQuery's notify, however, the during callback added later is unable to receive the notification informed before, which is possible in jQuery's notify.
+			> informWith : Inform about the future's progress with the given context(this obj), kind of like jQuery's notifyWith
 			> approve : Approve the future. Calling this method will invoke the callbacks for the ok future in the order they were added. The callbacks are cleared after invoked. This is to settle the future with the OK status, kind of like jQuery's resolve
 			> approveWith : Approve the future with the given context(this obj), kind of like jQuery's resolveWith
 			> disapprove : Disapprove the future. Calling this method will invoke the callbacks for the error future in the order they were added. The callbacks are cleared after invoked. This is to settle the future with the Error status, kind of like jQuery's reject
@@ -603,7 +608,19 @@ var Future = (function () {
 		this.inform = function (msgArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (msgArgs !== undefined) ? [msgArgs] : [];
-				__duringCtrl.loop(args);
+				__duringCtrl.loop(null, args);
+			}
+		}
+		/*	Arg:
+				<OBJ> context = the this obj used when invoking jobs
+				<*|ARR> [msgArgs] = the messages being informed; the arguments to pass into the during callbacks; if multiple, put in one array. Please note that if only one var to pass along, but, that var is an array, please still wrap that var in one array or it woudl be treated as passing in mulitple vars.
+			Return:
+				Refer to this.report
+		*/
+		this.informWith = function (context, msgArgs) {
+			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
+				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (msgArgs !== undefined) ? [msgArgs] : [];
+				__duringCtrl.loop(context, args);
 			}
 		}
 		/*	Arg:

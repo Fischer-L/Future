@@ -199,6 +199,42 @@
 		return true;
 	});
 	
+	smokeTests.add("Inform future with context", function () {
+		
+		var f,
+			exp,
+			msg,
+			txt = " txt ",
+			ctx = {
+				sugar : " sugar "
+			};
+			
+		function setup() {
+			exp = msg = "";
+			f = Future.newOne("f" + futureCounts++);
+			f.next(function(txt) { msg += txt + this.sugar; })
+			 .during(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .fall(function(txt) { msg += txt + this.sugar; })
+			 .during(function(txt) { msg += txt + this.sugar; });			 
+		}
+		
+		setup();
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.informWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		ctx.sugar = " salt ";
+		exp += txt + ctx.sugar;
+		exp += txt + ctx.sugar;
+		f.informWith(ctx, txt);
+		this.assertEqual(exp, msg);
+		
+		
+		return true;
+	});
+	
 	smokeTests.add("Approve future", function () {		
 		var count = 0,
 			f = Future.newOne("f" + futureCounts++);
