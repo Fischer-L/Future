@@ -1162,207 +1162,117 @@
 	
 	smokeTests.add("Future and then new future", function () {
 		
-		var s, f, nf;
+		var f,
+			nf,
+			exp,
+			msg,
+			next0 = " next0 ",
+			next1 = " next1 ",
+			next2 = " next2 ",
+			fall0 = " fall0 ",
+			fall1 = " fall1 ",
+			fall2 = " fall2 ";
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				},
-				null
-			);	
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
-		
-			f.next(function (a, b) {
-				s = a + b;
-			});
+		function setup() {
+			exp = msg = "";
 			
-			if (util.isFuture(nf)) throw new Error;
+			f = Future.newOne("f" + futureCounts++);
+			f.txt = " by f ";
 			
-			f.approve([100, 100]);
-			nf.approve([-100, -100]);	
-			
-			if (s !== 200) throw new Error;
+			nf = [];
+			nf[0] = Future.newOne("f" + futureCounts++);
+			nf[0].txt = " by nf0 ";
+			nf[1] = Future.newOne("f" + futureCounts++);
+			nf[1].txt = " by nf1 ";			
 		}
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				},
-				null
-			)
-			.next(function (a, b) {
-				s = a + b;
-			});
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.approve([100, 100]);
-			nf.approve([-100, -100]);	
-			
-			if (s !== -200) throw new Error;
+		function doNext0(txt) {
+			msg += next0 + txt;
+			return nf[0];
+		}	
+		
+		function doNext1(txt) {
+			msg += next1 + txt;
 		}
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				},
-				function () {
-					return f;
-				}
-			);	
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
-		
-			f.next(function (a, b) {
-				s = a + b;
-			});
-			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.approve([100, 100]);
-			nf.approve([-100, -100]);	
-			
-			if (s !== 200) throw new Error;
+		function doNext2(txt) {
+			msg += next2 + txt;
 		}
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				},
-				function () {
-					return f;
-				}
-			)
-			.next(function (a, b) {
-				s = a + b;
-			});
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.approve([100, 100]);
-			nf.approve([-100, -100]);	
-			
-			if (s !== -200) throw new Error;
+		function doFall0(txt) {
+			msg += fall0 + txt;
+			return nf[1];
+		}	
+		
+		function doFall1(txt) {
+			msg += fall1 + txt;
+		}	
+		
+		function doFall2(txt) {
+			msg += fall2 + txt;
 		}
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				null, 
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				}
-			);	
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
+		setup();
+		f.andThen(doNext0).next(doNext1).fall(doFall1);
+		f.approve(f.txt);
+		nf[0].approve(nf[0].txt);
+		exp = next0 + f.txt + next1 + nf[0].txt;
+		this.assertEqual(exp, msg);
 		
-			f.fall(function (a, b) {
-				s = a + b;
-			});
-			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.disapprove([100, 100]);
-			nf.disapprove([-100, -100]);	
-			
-			if (s !== 200) throw new Error;
-		}
+		setup();
+		f.andThen(doNext0).next(doNext1).fall(doFall1);
+		f.approve(f.txt);
+		nf[0].disapprove(nf[0].txt);
+		exp = next0 + f.txt + fall1 + nf[0].txt;
+		this.assertEqual(exp, msg);
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				null,
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				}
-			)
-			.fall(function (a, b) {
-				s = a + b;
-			});
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.disapprove([100, 100]);
-			nf.disapprove([-100, -100]);	
-			
-			if (s !== -200) throw new Error;
-		}
+		setup();
+		f.andThen(null, doFall0).next(doNext1).fall(doFall1);
+		f.disapprove(f.txt);
+		nf[1].disapprove(nf[1].txt);
+		exp = fall0 + f.txt + fall1 + nf[1].txt;
+		this.assertEqual(exp, msg);
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					return f;
-				},
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				}
-			);	
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {
+		setup();
+		f.andThen(null, doFall0).next(doNext1).fall(doFall1);
+		f.disapprove(f.txt);
+		nf[1].approve(nf[1].txt);
+		exp = fall0 + f.txt + next1 + nf[1].txt;
+		this.assertEqual(exp, msg);
 		
-			f.fall(function (a, b) {
-				s = a + b;
-			});
-			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.disapprove([100, 100]);
-			nf.disapprove([-100, -100]);	
-			
-			if (s !== 200) throw new Error;
-		}
+		setup();
+		f.andThen(doNext0, doFall0).next(doNext1).fall(doFall1);
+		f.disapprove(f.txt);
+		nf[1].approve(nf[1].txt);
+		exp = fall0 + f.txt + next1 + nf[1].txt;
+		this.assertEqual(exp, msg);
 		
-		nf = null;
-		f = Future.newOne("f" + futureCounts++);
-		s = f.andThen(
-				function () {
-					return f;
-				},
-				function () {
-					nf = Future.newOne("f" + futureCounts++);
-					return nf;
-				}
-			)
-			.fall(function (a, b) {
-				s = a + b;
-			});
-		if (!util.isSwear(s)) {
-			throw new Error;
-		} else {			
-			if (util.isFuture(nf)) throw new Error;
-			
-			f.disapprove([100, 100]);
-			nf.disapprove([-100, -100]);	
-			
-			if (s !== -200) throw new Error;
-		}
+		setup();
+		f.andThen(doNext0, doFall0).next(doNext1).fall(doFall1);
+		f.approve(f.txt);
+		nf[0].disapprove(nf[0].txt);
+		exp = next0 + f.txt + fall1 + nf[0].txt;
+		this.assertEqual(exp, msg);
+		
+		setup();
+		f.andThen(doNext0, doFall0).next(doNext1).fall(doFall1);
+		f.next(doNext2).fall(doFall2);
+		f.approve(f.txt);
+		exp = next0 + f.txt + next2 + f.txt;
+		this.assertEqual(exp, msg);
+		nf[0].disapprove(nf[0].txt);
+		exp += fall1 + nf[0].txt;
+		this.assertEqual(exp, msg);
+		
+		setup();
+		f.andThen(doNext0, doFall0).next(doNext1).fall(doFall1);
+		f.next(doNext2).fall(doFall2);
+		f.disapprove(f.txt);
+		exp = fall0 + f.txt + fall2 + f.txt;
+		this.assertEqual(exp, msg);
+		nf[1].approve(nf[1].txt);
+		exp += next1 + nf[1].txt;
+		this.assertEqual(exp, msg);
 		
 		return true;
 	});
