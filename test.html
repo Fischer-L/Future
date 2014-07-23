@@ -1891,6 +1891,80 @@
 		return true;
 	});
 	
+	smokeTests.add("Future and then with context", function () {
+		
+		var f,
+			nf,
+			exp,
+			msg,
+			next0 = "next0",
+			next1 = "next1",
+			fall0 = "fall0",
+			fall1 = "fall1",
+			during0 = "during0",
+			during1 = "during1",
+			ctx = {
+				sugar : " sugar "
+			};
+		
+		function setup() {
+			nf = [];
+			exp = msg = "";
+			
+			f = Future.newOne("f" + futureCounts++);
+			f.txt = " by f ";
+			
+			for (var i = 0; i < 3; i++) {
+				nf[i] = Future.newOne("f" + futureCounts++);
+				nf[i].txt = " by nf" + i;
+			}
+			
+			f.andThen(
+				function (txt) {
+					msg += next0 + txt + this.sugar;
+					return txt;
+				},
+				function (txt) {
+					msg += fall0 + txt + this.sugar;
+					return nf[0];
+				},
+				function (txt) {
+					msg += during0 + txt + this.sugar;					
+					return nf[1];
+				}
+			 )
+			 .next(function (txt) {
+					msg += next1 + txt + this.sugar;
+			 })
+			 .fall(function (txt) {
+					msg += fall1 + txt + this.sugar;
+					return txt;
+			 })
+			 .during(function (txt) {
+					msg += during1 + txt + this.sugar;
+					return txt;			 
+			 });
+		}
+		
+		setup();
+		f.approveWith(ctx, f.txt);
+		exp = next0 + f.txt + ctx.sugar + next1 + f.txt + ctx.sugar;
+		this.assertEqual(exp. msg);
+		
+		setup();
+		f.disapproveWith(ctx, f.txt);
+		nf[0].informWith(ctx, nf[0].txt);
+		nf[0].disapproveWith(ctx, nf[0].txt);
+		exp = fall0 + f.txt + ctx.sugar + during1 + nf[0].txt + ctx.sugar + fall1 + nf[0].txt + ctx.sugar;
+		this.assertEqual(exp, msg);
+		
+		setup();
+		f.informWith(ctx, f.txt);
+		
+		
+		return true;
+	});
+	
 	smokeTests.run();
 	
 	

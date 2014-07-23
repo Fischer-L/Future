@@ -504,9 +504,10 @@ var Future = (function () {
 				return {
 					/*	Arg:
 							<STR> predecessorStatus = the predecessor future obj's status
+							<OBJ> contextForAndThen = the context(this obj) in which the predecessor's callbacks ar invoked
 							<ARR> varsForAndThen = the vars passed along the predecessor's queue and would be passed to the and-then callbacks
 					*/
-					callAndThenCallback : function (predecessorStatus, varsForAndThen) {
+					callAndThenCallback : function (predecessorStatus, contextForAndThen, varsForAndThen) {
 						
 						var newFuture,
 							callType,
@@ -542,7 +543,7 @@ var Future = (function () {
 						
 						if (typeof callbacks[callType] == "function") {
 						
-							callResultValue = callbacks[callType].apply(null, varsForAndThen);		
+							callResultValue = callbacks[callType].apply(contextForAndThen, varsForAndThen);		
 
 							if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
 							
@@ -561,36 +562,23 @@ var Future = (function () {
 						}						
 						
 						if (newFuturePool.add(newFuture)) { // We don't want to double chain onto the one chained before
-							
 							// Let's chain the future jobs after this and-then onto the future/swear obj decided by the calling of callbacks 
-							switch (predecessorStatus) {
-								case Future.FLAG_FUTURE_IS_OK:
-									chainAndThenFutureOn(newFuture, "approve");
-								break;
-								
-								case Future.FLAG_FUTURE_IS_ERR:
-									chainAndThenFutureOn(newFuture, "disapprove");
-								break;
-								
-								case Future.FLAG_FUTURE_NOT_YET:
-									chainAndThenFutureOn(newFuture, "approve");
-									chainAndThenFutureOn(newFuture, "disapprove");
-									chainAndThenFutureOn(newFuture, "inform");
-								break;
-							}
+							chainAndThenFutureOn(newFuture, "approve");
+							chainAndThenFutureOn(newFuture, "disapprove");
+							chainAndThenFutureOn(newFuture, "inform");
 						}
 					}
 				}
 			}(andThenFuture, this, __swear, okCallback, errCallback, duringCallback));
 			
 			this.next(function () {
-					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_OK, Array.prototype.slice.call(arguments, 0));
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_OK, this, Array.prototype.slice.call(arguments, 0));
 				})
 				.fall(function () {
-					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_ERR, Array.prototype.slice.call(arguments, 0));
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_ERR, this, Array.prototype.slice.call(arguments, 0));
 				})
 				.during(function () {
-					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_NOT_YET, Array.prototype.slice.call(arguments, 0));
+					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_NOT_YET, this, Array.prototype.slice.call(arguments, 0));
 				});
 			
 			// Return the and-then future's swear obj so the following jobs will be chained to the and-then future
