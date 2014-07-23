@@ -1885,6 +1885,81 @@
 		return true;
 	});
 	
+	smokeTests.add("Future after futures", function () {
+		
+		var f,
+			exp,
+			act,
+			after,
+			ctx = {},
+			that = this;
+		
+		function listen(a, b, c) {
+			act = JSON.stringify(a) + " " + JSON.stringify(b) + " " + JSON.stringify(c);
+		}
+		
+		function setup() {
+			
+			exp = act = "";
+			
+			f = [];
+			f[0] = Future.newOne("f" + futureCounts++);
+			f[1] = Future.newOne("f" + futureCounts++);
+			f[1].args = "f1";
+			f[2] = Future.newOne("f" + futureCounts++);
+			f[2].args = ["f2-1", "f2-2"];
+			
+			after = Future.after("f" + futureCounts++, [f[0], f[1], f[2]]);
+			after.andThen(listen, listen, listen);
+		}
+		
+		setup();
+		exp = JSON.stringify([]) + " " + JSON.stringify([f[1].args]) + " " + JSON.stringify(f[2].args);
+		f[0].approve();
+		f[1].approve(f[1].args);
+		f[2].approve(f[2].args);
+		this.assertEqual(exp, act);
+		
+		setup();
+		exp = JSON.stringify([]) + " " + JSON.stringify([f[1].args]) + " " + JSON.stringify(f[2].args);
+		f[0].disapproveWith(ctx);
+		f[1].disapproveWith(ctx, f[1].args);
+		f[2].disapproveWith(ctx, f[2].args);
+		this.assertEqual(exp, act);
+				
+		setup();
+		exp = JSON.stringify(undefined) + " " + JSON.stringify([f[1].args]) + " " + JSON.stringify(f[2].args);
+		f[0].approve();
+		f[1].disapprove(f[1].args);
+		f[2].disapprove(f[2].args);
+		this.assertEqual(exp, act);
+		
+		setup();
+		exp = JSON.stringify([]) + " " + JSON.stringify(undefined) + " " + JSON.stringify(f[2].args);
+		f[0].disapproveWith(ctx);
+		f[1].approveWith(ctx, f[1].args);
+		f[2].disapproveWith(ctx, f[2].args);
+		this.assertEqual(exp, act);
+		
+		setup();
+		exp = JSON.stringify([]) + " " + JSON.stringify(undefined) + " " + JSON.stringify(undefined);
+		f[0].inform();
+		this.assertEqual(exp, act);
+		
+		exp = JSON.stringify(undefined) + " " + JSON.stringify([f[1].args]) + " " + JSON.stringify(undefined);
+		f[1].informWith(ctx, f[1].args);
+		this.assertEqual(exp, act);
+		
+		exp = JSON.stringify(undefined) + " " + JSON.stringify(undefined) + " " + JSON.stringify(f[2].args);
+		f[2].inform(f[2].args);
+		this.assertEqual(exp, act);
+		
+		after = Future.after("f" + futureCounts++, [f[0], f[1], null]);
+		this.assertEqual(null, after);
+		
+		return true;
+	});	
+	
 	smokeTests.run();
 	
 	

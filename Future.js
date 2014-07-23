@@ -17,9 +17,29 @@
 		> _define : Define constant property on one object
 		[ Public ]
 		> exist : Check if the specified Future obj is stored and made before.
-		> newOne : New one Future obj. Future will also store the generated Future obj. Thus we would be able to call Future.dump to track every Future obj's status and prevent from generating two Future obj for the same thing.
-		> rmOne : Remvoe one Future obj from Future's Future pool (Better remove after the future is settled so as to be able to track down unsettled future).
 		> dump : Dump the array of names of Future objs. With the method, we could find out Future objs which are settled or not.
+		> newOne : New one Future obj. Future will also store the generated future obj. Thus we would be able to call Future.dump to track every Future obj's status.		           
+		> rmOne : Remvoe one Future obj from Future's Future pool (Better remove after the future is settled so as to be able to track down unsettled future).
+		> after : Return one new swear obj of one future. This future, the dependent future, depends on other futures to settle itself. 
+		          Only all the futures for which this dependent future waits are approved, it would be approved, otherwise, it would be disapproved.
+				  kind of like jQuery's when but different in the following manners:
+				  The dependent future wouldn't be settled even though it knows it must be disapproved because there is one waited future which had been disapporved. the dependent future would be settled only after all the waited futures are settled.
+				  When the dependent future is approved, disapproved or informed, the jobs(callbacks) chained onto it would be passed arguments which come from the waited futures.
+				  These arguments are passed in the order of the waited future being added. For example, the dependent future is waiting for the future A, the future B and the future C.
+				  Case 1: the future A is approved with no argument. The future B is approved with 1 argument. The future C is approved with 2 arguments.
+				          The depenedent future would be approved and pass 3 arguments to callbacks chained to it.
+						  The 1st argument is an empty array since the future A has no argument.
+						  The 2nd argument is an array storing the only one argument coming from the future B.
+						  The 3rd argument is an array storing the 2 arguments coming from the future C.
+				  Case 2: the future A is disapproved with no argument. The future B is disapporved with 1 argument. The future C is approved with 2 arguments.
+				          The depenedent future would be disapproved and pass 3 arguments to callbacks chained to it.
+						  The 1st argument is an empty array since the future A has no argument.
+						  The 2nd argument is an array storing the only one argument coming from the future B.
+						  The 3rd argument is undefined since the future C is approved and has no arguments for the disapproved status.
+				  Case 3: the future A informs with 1 argument.
+						  The dependent future would be informed and then pass 3 arguments to inform callbacks chained to it.
+						  The 1st argument is an array storing the only one argument coming from the future A.
+						  The 2nd and the 3rd argument is both undefined since the future B and the future C has nothing to do with this.
 */
 var Future = (function () {
 	/*	Arg:
@@ -591,7 +611,7 @@ var Future = (function () {
 		*/
 		this.inform = function (msgArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (msgArgs !== undefined) ? [msgArgs] : [];
+				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (arguments.length > 0) ? [msgArgs] : [];
 				__duringCtrl.loop(null, args);
 			}
 		}
@@ -603,7 +623,7 @@ var Future = (function () {
 		*/
 		this.informWith = function (context, msgArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (msgArgs !== undefined) ? [msgArgs] : [];
+				var args = (msgArgs instanceof Array) ? msgArgs.slice(0) : (arguments.length > 1) ? [msgArgs] : [];
 				__duringCtrl.loop(context, args);
 			}
 		}
@@ -614,7 +634,7 @@ var Future = (function () {
 		*/
 		this.approve = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (settledArgs !== undefined) ? [settledArgs] : [];
+				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (arguments.length > 0) ? [settledArgs] : [];
 				__status = Future.FLAG_FUTURE_IS_OK;
 				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_OK, args);
 				__flushQueue();
@@ -630,7 +650,11 @@ var Future = (function () {
 		this.approveWith = function (context, settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				__queueCtrl.setContextForQueue(__queueCtrl.FLAG_QUEUE_TYPE_OK, context);
-				this.approve(settledArgs);
+				if (arguments.length > 1) {
+					this.approve(settledArgs);
+				} else {
+					this.approve();
+				}
 			}
 			return this.report();
 		}
@@ -641,7 +665,7 @@ var Future = (function () {
 		*/
 		this.disapprove = function (settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
-				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (settledArgs !== undefined) ? [settledArgs] : [];
+				var args = (settledArgs instanceof Array) ? settledArgs.slice(0) : (arguments.length > 0) ? [settledArgs] : [];
 				__status = Future.FLAG_FUTURE_IS_ERR;
 				__queueCtrl.setVarsForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, args);
 				__flushQueue();
@@ -657,7 +681,11 @@ var Future = (function () {
 		this.disapproveWith = function (context, settledArgs) {
 			if (this.report() === Future.FLAG_FUTURE_NOT_YET) {
 				__queueCtrl.setContextForQueue(__queueCtrl.FLAG_QUEUE_TYPE_ERR, context);
-				this.disapprove(settledArgs);
+				if (arguments.length > 1) {
+					this.disapprove(settledArgs);
+				} else {
+					this.disapprove();
+				}
 			}
 			return this.report();
 		}
@@ -754,38 +782,6 @@ var Future = (function () {
 				return _futures[name] instanceof _cls_Future;
 			},
 			/*	Arg:
-					<STR> name = the name of future obj
-				Return:
-					@ OK: <OBJ> the instance of Future::_cls_Future
-					@ NG: null
-			*/
-			newOne : function (name) {
-				var future = null;
-				if (typeof name == "string") {
-					if (!this.exist(name)) {
-						_futures[name] = new _cls_Future(name);
-					}
-					future = _futures[name];
-				}
-				return future;
-			},
-			/*	Arg:
-					<STR> name = the name of future obj
-				Return:
-					@ OK: <OBJ> the deleted instance of Future::_cls_Future
-					@ NG: null
-			*/
-			rmOne : function (name) {
-				var future = null;
-				if (typeof name == "string") {
-					if (_futures[name] instanceof _cls_Future) {
-						future = _futures[name];
-						delete _futures[name];
-					}			
-				}
-				return future;
-			},
-			/*	Arg:
 					<STR> status = the status of deferred objs to dump, refer to Future::_cls_Future::__status
 				Return:
 					<ARR> array of names of future objs with the given status
@@ -805,7 +801,127 @@ var Future = (function () {
 					}
 				}
 				return dumped;
-			}		
+			},
+			/*	Arg:
+					<STR> name = the name of future obj
+								 Watch out this method is to new one future obj so pass the name of any existing future would 
+				Return:
+					@ OK: <OBJ> the instance of Future::_cls_Future
+					@ NG: null
+			*/
+			newOne : function (name) {
+				var future = null;
+				if (name && typeof name == "string") {
+					if (!this.exist(name)) {
+						_futures[name] = new _cls_Future(name);
+					}
+						future = _futures[name];
+				}
+				return future;
+			},
+			/*	Arg:
+					<STR> name = the name of future obj
+				Return:
+					@ OK: <OBJ> the deleted instance of Future::_cls_Future
+					@ NG: null
+			*/
+			rmOne : function (name) {
+				var future = null;
+				if (name && typeof name == "string") {
+					if (_futures[name] instanceof _cls_Future) {
+						future = _futures[name];
+						delete _futures[name];
+					}			
+				}
+				return future;
+			},
+			/*	Arg:
+					<STR> name = the name of the future after futures.
+								 Please watch out that this name cannot be the name of any existing future, which means the after method always generates new future only.
+					<ARR> futures = The array of instances of Future::_cls_Future / Future::_cls_Future_Swear.
+									These arguments are the futures for which the future after futures waits.
+									Please watch out that as long as one of the array element is not valid, then, the entire array would be rejected.
+				Return:
+					@ OK: <OBJ> One Future::_cls_Future_Swear obj associated with the future after futures
+					@ NG: null
+			*/
+			after : function (name, futures) {
+				
+				var future = null;
+				
+				if (futures instanceof Array && futures.length > 0 && !this.exist(name)) {
+					
+					var i;
+					
+					for (i = 0; i < futures.length; i++) {
+						if (!(futures[i] instanceof _cls_Future) && !(futures[i] instanceof _cls_Future_Swear)) {
+							return future;
+						}
+					}
+					
+					future = this.newOne(name);
+					if (future) {
+							
+						var waiteds = [], // The array of the futures for which the future after futures waits				
+							approved = true, // The flag marking if all the waiteds are approved or not				
+							okArgsArray = [], // The array of arguments passed by the waiteds when approved
+							errArgsArray = [], // The array of arguments passed by the waiteds when disapproved							
+							duringArgsArray = []; // The array of arguments passed by the waiteds when informing
+						
+						for (i = 0; i < futures.length; i++) {
+							if (waiteds.indexOf(futures[i]) < 0) {
+								waiteds.push(futures[i]);
+							}
+						}
+						waiteds.count = waiteds.length; // The count of waiteds still not settled
+						
+						function settle() {	// Try to settle the future when the count of waited reaches 0						
+							if (waiteds.count <= 0) {
+								if (approved) {
+									future.approve(okArgsArray);
+								} else {
+									future.disapprove(errArgsArray);
+								}
+							}
+						}
+						
+						for (i = 0; i < waiteds.length; i++) {
+							
+							okArgsArray[i] = undefined;
+							errArgsArray[i] = undefined;
+							
+							waiteds[i].next((function (idx) {
+								return function () {
+									okArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);
+									waiteds.count--;
+									settle();
+								}
+							}(i)));
+							
+							waiteds[i].fall((function (idx) {
+								return function () {
+									errArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);
+									approved = false;
+									waiteds.count--;
+									settle();
+								}
+							}(i)));
+							
+							waiteds[i].during((function (idx) {
+								return function () {
+									for (var i = 0; i < waiteds.length; i++) {
+										duringArgsArray[i] = undefined;
+									}									
+									duringArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);									
+									future.inform(duringArgsArray);
+								}
+							}(i)));
+						}
+					}
+				}
+				
+				return future;
+			}
 		};	
 	
 	_define(publicProps, "FLAG_FUTURE_NOT_YET", 0, true);
