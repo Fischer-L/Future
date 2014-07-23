@@ -1914,7 +1914,7 @@
 			f = Future.newOne("f" + futureCounts++);
 			f.txt = " by f ";
 			
-			for (var i = 0; i < 3; i++) {
+			for (var i = 0; i < 2; i++) {
 				nf[i] = Future.newOne("f" + futureCounts++);
 				nf[i].txt = " by nf" + i;
 			}
@@ -1960,7 +1960,17 @@
 		
 		setup();
 		f.informWith(ctx, f.txt);
+		nf[1].informWith(ctx, nf[1].txt);
+		nf[1].disapproveWith(ctx, nf[1].txt);
+		exp = during0 + f.txt + ctx.sugar + during1 + nf[1].txt + ctx.sugar + fall1 + nf[1].txt + ctx.sugar;
+		this.assertEqual(exp, msg);
 		
+		setup();
+		f.informWith(ctx, f.txt);
+		nf[1].informWith(ctx, nf[1].txt);
+		f.approveWith(ctx, f.txt);
+		exp = during0 + f.txt + ctx.sugar + during1 + nf[1].txt + ctx.sugar + next0 + f.txt + ctx.sugar + next1 + f.txt + ctx.sugar;
+		this.assertEqual(exp, msg);
 		
 		return true;
 	});
