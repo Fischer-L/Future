@@ -111,7 +111,7 @@
 		var n = "f" + futureCounts++,
 			f0 = Future.newOne(n),
 			f1 = Future.newOne(n);		
-		return f0 === f1;
+		return null === f1;
 	});
 	
 	smokeTests.add("Future Exist", function () {

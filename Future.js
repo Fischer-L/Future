@@ -804,7 +804,7 @@ var Future = (function () {
 			},
 			/*	Arg:
 					<STR> name = the name of future obj
-								 Watch out this method is to new one future obj so pass the name of any existing future would 
+								 Watch out this method is to new one future obj so passing the name of any existing future would result nothing.
 				Return:
 					@ OK: <OBJ> the instance of Future::_cls_Future
 					@ NG: null
@@ -814,8 +814,8 @@ var Future = (function () {
 				if (name && typeof name == "string") {
 					if (!this.exist(name)) {
 						_futures[name] = new _cls_Future(name);
-					}
 						future = _futures[name];
+					}
 				}
 				return future;
 			},
