@@ -1885,12 +1885,12 @@
 		return true;
 	});
 	
-	smokeTests.add("Future after futures", function () {
+	smokeTests.add("Future upon futures", function () {
 		
 		var f,
 			exp,
 			act,
-			after,
+			upon,
 			ctx = {},
 			that = this;
 		
@@ -1909,8 +1909,8 @@
 			f[2] = Future.newOne("f" + futureCounts++);
 			f[2].args = ["f2-1", "f2-2"];
 			
-			after = Future.after("f" + futureCounts++, [f[0], f[1], f[2]]);
-			after.andThen(listen, listen, listen);
+			upon = Future.upon("f" + futureCounts++, [f[0], f[1], f[2]]);
+			upon.andThen(listen, listen, listen);
 		}
 		
 		setup();
@@ -1954,8 +1954,8 @@
 		f[2].inform(f[2].args);
 		this.assertEqual(exp, act);
 		
-		after = Future.after("f" + futureCounts++, [f[0], f[1], null]);
-		this.assertEqual(null, after);
+		upon = Future.upon("f" + futureCounts++, [f[0], f[1], null]);
+		this.assertEqual(null, upon);
 		
 		return true;
 	});	
