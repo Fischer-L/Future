@@ -810,11 +810,9 @@ var Future = (function () {
 					@ NG: null
 			*/
 			newOne : function (name) {
-				if (name && typeof name == "string") {
-					if (!this.exist(name)) {
+				if (name && typeof name == "string" && !this.exist(name)) {
 						_futures[name] = new _cls_Future(name);
 						return _futures[name];
-					}
 				}
 				return null;
 			},
@@ -825,12 +823,10 @@ var Future = (function () {
 					@ NG: null
 			*/
 			rmOne : function (name) {
-				if (name && typeof name == "string") {
-					if (_futures[name] instanceof _cls_Future) {
-						var future = _futures[name];
-						delete _futures[name];
-						return future;
-					}			
+				if (name && typeof name == "string" && this.exist(name)) {
+					var deleted = _futures[name];
+					delete _futures[name];
+					return deleted;
 				}
 				return null;
 			},
