@@ -825,14 +825,14 @@ var Future = (function () {
 					@ NG: null
 			*/
 			rmOne : function (name) {
-				var future = null;
 				if (name && typeof name == "string") {
 					if (_futures[name] instanceof _cls_Future) {
-						future = _futures[name];
+						var future = _futures[name];
 						delete _futures[name];
+						return future;
 					}			
 				}
-				return future;
+				return null;
 			},
 			/*	Arg:
 					<STR> name = the name of the future after futures.
