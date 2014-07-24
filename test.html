@@ -1914,6 +1914,9 @@
 		}
 		
 		setup();
+		this.assertEqual(true, util.isSwear(upon));
+		
+		setup();
 		exp = JSON.stringify([]) + " " + JSON.stringify([f[1].args]) + " " + JSON.stringify(f[2].args);
 		f[0].approve();
 		f[1].approve(f[1].args);
