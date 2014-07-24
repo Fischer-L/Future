@@ -20,26 +20,26 @@
 		> dump : Dump the array of names of Future objs. With the method, we could find out Future objs which are settled or not.
 		> newOne : New one Future obj. Future will also store the generated future obj. Thus we would be able to call Future.dump to track every Future obj's status.		           
 		> rmOne : Remvoe one Future obj from Future's Future pool (Better remove after the future is settled so as to be able to track down unsettled future).
-		> after : Return one new swear obj of one future. This future, the dependent future, depends on other futures to settle itself. 
-		          Only all the futures for which this dependent future waits are approved, it would be approved, otherwise, it would be disapproved.
-				  kind of like jQuery's when but different in the following manners:
-				  The dependent future wouldn't be settled even though it knows it must be disapproved because there is one waited future which had been disapporved. the dependent future would be settled only after all the waited futures are settled.
-				  When the dependent future is approved, disapproved or informed, the jobs(callbacks) chained onto it would be passed arguments which come from the waited futures.
-				  These arguments are passed in the order of the waited future being added. For example, the dependent future is waiting for the future A, the future B and the future C.
-				  Case 1: the future A is approved with no argument. The future B is approved with 1 argument. The future C is approved with 2 arguments.
-				          The depenedent future would be approved and pass 3 arguments to callbacks chained to it.
-						  The 1st argument is an empty array since the future A has no argument.
-						  The 2nd argument is an array storing the only one argument coming from the future B.
-						  The 3rd argument is an array storing the 2 arguments coming from the future C.
-				  Case 2: the future A is disapproved with no argument. The future B is disapporved with 1 argument. The future C is approved with 2 arguments.
-				          The depenedent future would be disapproved and pass 3 arguments to callbacks chained to it.
-						  The 1st argument is an empty array since the future A has no argument.
-						  The 2nd argument is an array storing the only one argument coming from the future B.
-						  The 3rd argument is undefined since the future C is approved and has no arguments for the disapproved status.
-				  Case 3: the future A informs with 1 argument.
-						  The dependent future would be informed and then pass 3 arguments to inform callbacks chained to it.
-						  The 1st argument is an array storing the only one argument coming from the future A.
-						  The 2nd and the 3rd argument is both undefined since the future B and the future C has nothing to do with this.
+		> upon : Return one new swear obj of one future. This future, the dependent future, depends upon other prior futures to settle itself. 
+		         Only all the prior futures upon which this dependent future depends are approved, it would be approved, otherwise, it would be disapproved.
+				 kind of like jQuery's when but different in the following manners:
+				 The dependent future wouldn't be settled even though it knows it must be disapproved because there is one prior future which had been disapporved. the dependent future would be settled only upon all the prior futures are settled.
+				 When the dependent future is approved, disapproved or informed, the jobs(callbacks) chained onto it would be passed arguments which come from the prior futures.
+				 These arguments are passed in the order of the prior future being added. For example, the dependent future is waiting for the future A, the future B and the future C.
+				 Case 1: the future A is approved with no argument. The future B is approved with 1 argument. The future C is approved with 2 arguments.
+				         The depenedent future would be approved and pass 3 arguments to callbacks chained to it.
+					     The 1st argument is an empty array since the future A has no argument.
+					     The 2nd argument is an array storing the only one argument coming from the future B.
+					     The 3rd argument is an array storing the 2 arguments coming from the future C.
+				 Case 2: the future A is disapproved with no argument. The future B is disapporved with 1 argument. The future C is approved with 2 arguments.
+				         The depenedent future would be disapproved and pass 3 arguments to callbacks chained to it.
+					     The 1st argument is an empty array since the future A has no argument.
+					     The 2nd argument is an array storing the only one argument coming from the future B.
+					     The 3rd argument is undefined since the future C is approved and has no arguments for the disapproved status.
+				 Case 3: the future A informs with 1 argument.
+					     The dependent future would be informed and then pass 3 arguments to inform callbacks chained to it.
+					     The 1st argument is an array storing the only one argument coming from the future A.
+					     The 2nd and the 3rd argument is both undefined since the future B and the future C has nothing to do with this.
 */
 var Future = (function () {
 	/*	Arg:
@@ -831,16 +831,16 @@ var Future = (function () {
 				return null;
 			},
 			/*	Arg:
-					<STR> name = the name of the future after futures.
-								 Please watch out that this name cannot be the name of any existing future, which means the after method always generates new future only.
+					<STR> name = the name of the future upon futures.
+								 Please watch out that this name cannot be the name of any existing future, which means the upon method always generates new future only.
 					<ARR> futures = The array of instances of Future::_cls_Future / Future::_cls_Future_Swear.
-									These arguments are the futures for which the future after futures waits.
+									These arguments are the prior futures upon which the future upon futures depends.
 									Please watch out that as long as one of the array element is not valid, then, the entire array would be rejected.
 				Return:
-					@ OK: <OBJ> One Future::_cls_Future_Swear obj associated with the future after futures
+					@ OK: <OBJ> One Future::_cls_Future_Swear obj associated with the future upon futures
 					@ NG: null
 			*/
-			after : function (name, futures) {
+			upon : function (name, futures) {
 				
 				var future = null;
 				
@@ -857,21 +857,21 @@ var Future = (function () {
 					future = this.newOne(name);
 					if (future) {
 							
-						var waiteds = [], // The array of the futures for which the future after futures waits				
-							approved = true, // The flag marking if all the waiteds are approved or not				
-							okArgsArray = [], // The array of arguments passed by the waiteds when approved
-							errArgsArray = [], // The array of arguments passed by the waiteds when disapproved							
-							duringArgsArray = []; // The array of arguments passed by the waiteds when informing
+						var priors = [], // The array of the prior futures on which the future after futures depends				
+							approved = true, // The flag marking if all the prior futures are approved or not				
+							okArgsArray = [], // The array of arguments passed by the prior futures when approved
+							errArgsArray = [], // The array of arguments passed by the prior futures when disapproved							
+							duringArgsArray = []; // The array of arguments passed by the prior futures when informing
 						
 						for (i = 0; i < futures.length; i++) {
-							if (waiteds.indexOf(futures[i]) < 0) {
-								waiteds.push(futures[i]);
+							if (priors.indexOf(futures[i]) < 0) {
+								priors.push(futures[i]);
 							}
 						}
-						waiteds.count = waiteds.length; // The count of waiteds still not settled
+						priors.count = priors.length; // The count of prior future still not settled
 						
-						function settle() {	// Try to settle the future when the count of waited reaches 0						
-							if (waiteds.count <= 0) {
+						function settle() {	// Try to settle the future when the count of priors reaches 0						
+							if (priors.count <= 0) {
 								if (approved) {
 									future.approve(okArgsArray);
 								} else {
@@ -880,31 +880,31 @@ var Future = (function () {
 							}
 						}
 						
-						for (i = 0; i < waiteds.length; i++) {
+						for (i = 0; i < priors.length; i++) {
 							
 							okArgsArray[i] = undefined;
 							errArgsArray[i] = undefined;
 							
-							waiteds[i].next((function (idx) {
+							priors[i].next((function (idx) {
 								return function () {
 									okArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);
-									waiteds.count--;
+									priors.count--;
 									settle();
 								}
 							}(i)));
 							
-							waiteds[i].fall((function (idx) {
+							priors[i].fall((function (idx) {
 								return function () {
 									errArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);
 									approved = false;
-									waiteds.count--;
+									priors.count--;
 									settle();
 								}
 							}(i)));
 							
-							waiteds[i].during((function (idx) {
+							priors[i].during((function (idx) {
 								return function () {
-									for (var i = 0; i < waiteds.length; i++) {
+									for (var i = 0; i < priors.length; i++) {
 										duringArgsArray[i] = undefined;
 									}									
 									duringArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);									
