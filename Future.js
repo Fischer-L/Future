@@ -863,7 +863,7 @@ var Future = (function () {
 								return a.indexOf(el) >= 0;
 							}
 							
-							for (var i = 0; i < a.length; a++) {
+							for (i = 0; i < a.length; a++) {
 								if (a[i] === el) return true;
 							}
 							return false;
@@ -919,7 +919,7 @@ var Future = (function () {
 									for (var i = 0; i < priors.length; i++) {
 										duringArgsArray[i] = undefined;
 									}									
-									duringArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);									
+									duringArgsArray[idx] = (arguments.length <= 0) ? [] : Array.prototype.slice.call(arguments, 0);
 									future.inform(duringArgsArray);
 								}
 							}(i)));
