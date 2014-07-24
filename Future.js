@@ -754,10 +754,10 @@ var Future = (function () {
 			return this.swear();
 		}
 		/*	Arg: Return:
-				> [callbackForOK], [callbackForErr] = Refer to Future::_cls_Future::andThen
+				> [okCallback], [errCallback] = Refer to Future::_cls_Future::andThen
 		*/
-		this.andThen = function (callbackForOK, callbackForErr) {
-			return _future.andThen(callbackForOK, callbackForErr).swear();
+		this.andThen = function (okCallback, errCallback, duringCallback) {
+			return _future.andThen(okCallback, errCallback, duringCallback).swear();
 		}
 		/*	Return: <OBJ> the swear obj itself
 		*/
@@ -927,7 +927,7 @@ var Future = (function () {
 					}
 				}
 				
-				return future;
+				return future ? future.swear() : future;
 			}
 		};	
 	
