@@ -700,70 +700,47 @@ var Future = (function () {
 		}
 	}
 	/*	Properties: 
-			<OBJ> _future = the future obj with which this swear obj associated
+			[ Private ]
+			<OBJ> __future = the future obj with which this swear obj associated
 		Methods:
-			> report : Refer to this::_future.report
-			> next : Refer to this::_future.next
-			> fall : Refer to this::_future.fall
-			> anyway : Refer to this::_future.anyway
-			> during : Refer to this::_future.during
-			> andThen : Refer to this::_future.andThen
-			> swear : Return one swear obj associated with this::_future
+			[ Public ]
+			> report, swear : Refer to this::__future
+			> next, fall, anyway, during, andThen : Refer to this::__future. But always return this swear obj instead.
 	*/
 	function _cls_Future_Swear(future) {
-		var _future = future;
-		/*	Return: Refer to Future::_cls_Future::report
-		*/
-		this.report = function () {
-			return _future.report();
+	
+		var __future = future;
+		
+		function bindMethod(self, name, alwaysSwear) { // Just a utility function for reuse
+			
+			if (typeof __future[name] != "function") {
+				_logErr("Unknow future method : " + name);
+				return;
+			}
+			
+			self[name] = !alwaysSwear ?
+						 function () {
+							return __future[name].apply(__future, Array.prototype.slice.call(arguments, 0));
+						 }
+						 :
+						 function () {
+							__future[name].apply(__future, Array.prototype.slice.call(arguments, 0));
+							return this;
+						 };
 		}
-		/*	Arg:
-				> callbacks = Refer to Future::_cls_Future::next
-			Return:
-				> Refer to this.swear
-		*/
-		this.next = function (callbacks) {
-			_future.next(callbacks);
-			return this.swear();
+		
+		var boundMethods; // Just a variable for reuse
+		
+		boundMethods = ["report", "swear"];
+		while(boundMethods.length > 0) {
+			bindMethod(this, boundMethods.pop(), false);
 		}
-		/*	Arg:
-				> callbacks = Refer to Future::_cls_Future::fall
-			Return:
-				> Refer to this.swear
-		*/
-		this.fall = function (callbacks) {
-			_future.fall(callbacks);
-			return this.swear();
+		
+		boundMethods = ["next", "fall", "anyway", "during", "andThen"];
+		while(boundMethods.length > 0) {
+			bindMethod(this, boundMethods.pop(), true);
 		}
-		/*	Arg:
-				> callbacks = Refer to Future::_cls_Future::anyway
-			Return:
-				> Refer to this.swear
-		*/
-		this.anyway = function (callbacks) {
-			_future.anyway(callbacks);
-			return this.swear();
-		}
-		/*	Arg:
-				> callbacks = Refer to Future::_cls_Future::during
-			Return:
-				> Refer to this.swear
-		*/
-		this.during = function (callbacks) {
-			_future.during(callbacks);
-			return this.swear();
-		}
-		/*	Arg: Return:
-				> [okCallback], [errCallback] = Refer to Future::_cls_Future::andThen
-		*/
-		this.andThen = function (okCallback, errCallback, duringCallback) {
-			return _future.andThen(okCallback, errCallback, duringCallback).swear();
-		}
-		/*	Return: <OBJ> the swear obj itself
-		*/
-		this.swear = function () {
-			return this;
-		}
+		
 	}
 	/*	Properties:
 			[ Public ]
