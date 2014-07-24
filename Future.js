@@ -80,7 +80,7 @@ var Future = (function () {
 		
 		var defined;
 		
-		if (obj instanceof Object && propName && typeof propName == "string") {			
+		if (obj instanceof Object && propName && typeof propName == "string") {		
 			
 			if (obj[propName] === undefined) {
 		
@@ -856,7 +856,19 @@ var Future = (function () {
 					
 					future = this.newOne(name);
 					if (future) {
+						
+						function arrayHas(a, el) {
+						
+							if (typeof a.indexOf == "function") {
+								return a.indexOf(el) >= 0;
+							}
 							
+							for (var i = 0; i < a.length; a++) {
+								if (a[i] === el) return true;
+							}
+							return false;
+						}
+						
 						var priors = [], // The array of the prior futures on which the future after futures depends				
 							approved = true, // The flag marking if all the prior futures are approved or not				
 							okArgsArray = [], // The array of arguments passed by the prior futures when approved
@@ -864,7 +876,7 @@ var Future = (function () {
 							duringArgsArray = []; // The array of arguments passed by the prior futures when informing
 						
 						for (i = 0; i < futures.length; i++) {
-							if (priors.indexOf(futures[i]) < 0) {
+							if (!arrayHas(priors, futures[i])) {
 								priors.push(futures[i]);
 							}
 						}
