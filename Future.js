@@ -270,7 +270,7 @@ var Future = (function () {
 				for (var i = 0; i < __durings.length; i++) {
 					try {
 						__durings[i].apply(
-							(context == null || context === undefined) ? window : context,
+							(context === null || context === undefined) ? window : context,
 							args
 						);
 					} catch (err) {
