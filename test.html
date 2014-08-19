@@ -1156,6 +1156,33 @@
 			f.disapprove([100, 100]);			
 			if (s !== 200) throw new Error;
 		}
+				
+		var count = 0;
+		s = 0;
+		f = Future.newOne("f" + futureCounts++);
+		f.andThen(
+			function () { return; },
+			function () { return; },
+			function () {
+				if (count <= 0) {
+					return f;
+				} else {
+					return f.swear();
+				}
+			}
+		  )
+		 .during(function (a) {
+			s += a;
+		  });
+		f.inform(10);
+		count++;
+		if (s !== 10) throw new Error;
+		f.inform(10);
+		count++;
+		if (s !== 30) throw new Error;
+		f.inform(10);
+		count++;
+		if (s !== 50) throw new Error;
 		
 		return true;
 	});
