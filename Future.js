@@ -438,7 +438,7 @@ var Future = (function () {
 					[ Public ]
 					> callAndThenCallback : Call the callbacks passed into the andThen method
 			*/
-			var futureMediator = (function (andThenFuture, originalFuture, originalSwear, okCallback, errCallback, duringCallback) {
+			var futureMediator = (function (andThenFuture, originalFuture, okCallback, errCallback, duringCallback) {
 					
 					/*	Properties:
 							[ Private ]
@@ -520,7 +520,7 @@ var Future = (function () {
 					}
 					chainAndThenFutureOn.newArgs = [];
 					chainAndThenFutureOn.useNewArgs = false;
-										
+	
 				return {
 					/*	Arg:
 							<STR> predecessorStatus = the predecessor future obj's status
@@ -552,7 +552,6 @@ var Future = (function () {
 								callType = "duringCallback";
 							break;
 						}
-													
 						
 						// Let's call the desired callback to
 						// decide the future onto which the future jobs after this and-then are chained
@@ -567,7 +566,7 @@ var Future = (function () {
 
 							if (callResultValue instanceof _cls_Future || callResultValue instanceof _cls_Future_Swear) {
 							
-								newFuture = (callResultValue === originalFuture || callResultValue === originalSwear) ? originalFuture : callResultValue;
+								newFuture = callResultValue;
 								
 							} else {
 							
@@ -589,7 +588,7 @@ var Future = (function () {
 						}
 					}
 				}
-			}(andThenFuture, this, __swear, okCallback, errCallback, duringCallback));
+			}(andThenFuture, this, okCallback, errCallback, duringCallback));
 			
 			this.next(function () {
 					futureMediator.callAndThenCallback(Future.FLAG_FUTURE_IS_OK, this, Array.prototype.slice.call(arguments, 0));
